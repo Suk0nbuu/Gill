@@ -11,7 +11,7 @@
 #include <iostream>
 
 
-void Gizmo::Init(unsigned int width,unsigned int height,GizmoData* gizmoData,TransformSystem* transformSystem) {
+void Gizmo::Init(unsigned int width,unsigned int height,TransformData* gizmoData,TransformSystem* transformSystem) {
     m_width = width;
     m_height = height;
     glEnable(GL_PROGRAM_POINT_SIZE);
@@ -61,12 +61,12 @@ void Gizmo::Render(Scene* scene,const mathpp::mat4f& view, const mathpp::mat4f& 
     mathpp::mat4f rotZ;
     ComputeAxisRotations(entity, rotX, rotY, rotZ);
 
-    mathpp::vec3f xColor = (em_highlightedAxis == GizmoAxis::X) ? mathpp::vec3f(1.0f,1.0f,0.0f) : mathpp::vec3f(0.8f,0.0f,0.0f);
+    mathpp::vec3f xColor = (em_highlightedAxis == TransformAxis::X) ? mathpp::vec3f(1.0f,1.0f,0.0f) : mathpp::vec3f(0.8f,0.0f,0.0f);
     DrawAxis(gizmoPosition, rotX, xColor, scale);
 
-    mathpp::vec3f yColor = (em_highlightedAxis == GizmoAxis::Y) ? mathpp::vec3f(0.0f,1.0f,1.0f) : mathpp::vec3f(0.0f,0.8f,0.0f);
+    mathpp::vec3f yColor = (em_highlightedAxis == TransformAxis::Y) ? mathpp::vec3f(0.0f,1.0f,1.0f) : mathpp::vec3f(0.0f,0.8f,0.0f);
     DrawAxis(gizmoPosition, rotY, yColor, scale);
-    mathpp::vec3f zColor = (em_highlightedAxis == GizmoAxis::Z) ? mathpp::vec3f(1.0f,0.0f,1.0f) : mathpp::vec3f(0.0f,0.0f,0.8f);
+    mathpp::vec3f zColor = (em_highlightedAxis == TransformAxis::Z) ? mathpp::vec3f(1.0f,0.0f,1.0f) : mathpp::vec3f(0.0f,0.0f,0.8f);
     DrawAxis(gizmoPosition, rotZ, zColor, scale);
 
 
@@ -79,12 +79,12 @@ void Gizmo::DrawAxis(const mathpp::vec3f &gizmoPosition, const mathpp::mat4f &ax
     up_gizmoShader->setVec3f("axisColor", color);
     mathpp::mat4f identity;
     Mesh* drawMesh = nullptr;
-    if (p_gizmoData->mode == GizmoMode::Translate){drawMesh = up_translateMesh.get();}
-    else if (p_gizmoData->mode == GizmoMode::Rotate){drawMesh = up_rotateMesh.get();}
-    else if (p_gizmoData->mode == GizmoMode::Scale){drawMesh = up_scaleMesh.get();}
+    if (p_gizmoData->mode == TransformMode::Translate){drawMesh = up_translateMesh.get();}
+    else if (p_gizmoData->mode == TransformMode::Rotate){drawMesh = up_rotateMesh.get();}
+    else if (p_gizmoData->mode == TransformMode::Scale){drawMesh = up_scaleMesh.get();}
     mathpp::mat4f meshModel = mathpp::translate(identity, gizmoPosition);
     meshModel = meshModel * axisRotation;
-    if (p_gizmoData->mode != GizmoMode::Rotate)
+    if (p_gizmoData->mode != TransformMode::Rotate)
     {
     meshModel = mathpp::translate(meshModel, {0.0f, m_AxisHeight * 0.4f * scale, 0.0f});
         meshModel = meshModel = mathpp::scale(meshModel, {scale, scale, scale});
@@ -118,9 +118,9 @@ void Gizmo::RenderIDs(const mathpp::mat4f &view, const mathpp::mat4f &projection
 
     ComputeAxisRotations(entity, rotX, rotY, rotZ);
 
-    DrawAxisID(gizmoPosition, rotX, scale,static_cast<int>(GizmoAxis::X));
-    DrawAxisID(gizmoPosition, rotY,  scale,static_cast<int>(GizmoAxis::Y));
-    DrawAxisID(gizmoPosition, rotZ,  scale,static_cast<int>(GizmoAxis::Z));
+    DrawAxisID(gizmoPosition, rotX, scale,static_cast<int>(TransformAxis::X));
+    DrawAxisID(gizmoPosition, rotY,  scale,static_cast<int>(TransformAxis::Y));
+    DrawAxisID(gizmoPosition, rotZ,  scale,static_cast<int>(TransformAxis::Z));
 
     glEnable(GL_DEPTH_TEST);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -130,12 +130,12 @@ void Gizmo::DrawAxisID(const mathpp::vec3f &gizmoPosition, const mathpp::mat4f &
     up_gizmoShaderID->setInt("GizmoAxis",ID);
     mathpp::mat4f identity;
     Mesh* drawMesh = nullptr;
-    if (p_gizmoData->mode == GizmoMode::Translate){drawMesh = up_translateMesh.get();}
-    else if (p_gizmoData->mode == GizmoMode::Rotate){drawMesh = up_rotateMesh.get();}
-    else if (p_gizmoData->mode == GizmoMode::Scale){drawMesh = up_scaleMesh.get();}
+    if (p_gizmoData->mode == TransformMode::Translate){drawMesh = up_translateMesh.get();}
+    else if (p_gizmoData->mode == TransformMode::Rotate){drawMesh = up_rotateMesh.get();}
+    else if (p_gizmoData->mode == TransformMode::Scale){drawMesh = up_scaleMesh.get();}
     mathpp::mat4f axisModel = mathpp::translate(identity, gizmoPosition);
     axisModel = axisModel * axisRotation;
-    if (p_gizmoData->mode != GizmoMode::Rotate)
+    if (p_gizmoData->mode != TransformMode::Rotate)
     {
         axisModel = mathpp::translate(axisModel, {0.0f, m_AxisHeight * 0.4f * scale, 0.0f});
         axisModel = axisModel = mathpp::scale(axisModel, {scale, scale, scale});
@@ -149,19 +149,19 @@ void Gizmo::DrawAxisID(const mathpp::vec3f &gizmoPosition, const mathpp::mat4f &
 
 }
 
-GizmoAxis Gizmo::ReadAxisAt(int x, int y) const {
+TransformAxis Gizmo::ReadAxisAt(int x, int y) const {
     glBindFramebuffer(GL_FRAMEBUFFER, m_pickFBO);
     int flippedY = m_height - y;  // flip since glReadPixels origin is bottom-left
 
     GLint pickedID = 0;
     glReadPixels(x, flippedY, 1, 1, GL_RED_INTEGER, GL_INT, &pickedID);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    return static_cast<GizmoAxis>(pickedID);
+    return static_cast<TransformAxis>(pickedID);
 }
 
 
 
-void Gizmo::UpdateHighlight(int x, int y, GizmoAxis dragAxis, bool isDragging)  {
+void Gizmo::UpdateHighlight(int x, int y, TransformAxis dragAxis, bool isDragging)  {
     if (isDragging) {
         em_highlightedAxis = dragAxis;
     }
@@ -177,7 +177,7 @@ void Gizmo::ComputeAxisRotations(Entity entity, mathpp::mat4f& outRotX, mathpp::
         : mathpp::quatf{};
     mathpp::mat4f worldRotMat = mathpp::QuatToMat4(worldRot);
 
-    if (p_gizmoData->mode != GizmoMode::Rotate) {
+    if (p_gizmoData->mode != TransformMode::Rotate) {
         outRotY = worldRotMat * mathpp::EulerAnglesRotation<float>({0.0f, 90.0f, 0.0f});
         outRotX = worldRotMat * mathpp::EulerAnglesRotation<float>({0.0f, 0.0f, -90.0f});
         outRotZ = worldRotMat * mathpp::EulerAnglesRotation<float>({90.0f, 0.0f, 0.0f});

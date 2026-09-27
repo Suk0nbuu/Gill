@@ -7,7 +7,12 @@ enum class EditorAction {
     ToggleViewportMode,
     Translate,
     Rotate,
-    Scale
+    Scale,
+    AxisX,
+    AxisY,
+    AxisZ,
+    ConfirmTransform,
+    CancelTransform
 };
 
 class Input;
@@ -26,5 +31,10 @@ private:
         { EditorAction::Translate, GLFW_KEY_G },
         { EditorAction::Rotate, GLFW_KEY_R },
         { EditorAction::Scale, GLFW_KEY_S },
+        { EditorAction::AxisX, GLFW_KEY_X },
+        { EditorAction::AxisY, GLFW_KEY_Y },
+        { EditorAction::AxisZ, GLFW_KEY_Z },
+        { EditorAction::ConfirmTransform, GLFW_KEY_ENTER },
+        { EditorAction::CancelTransform, GLFW_KEY_ESCAPE },
     };
 };

@@ -9,7 +9,7 @@
 #include "core/system/mesh/mesh.hpp"
 #include "core/system/material/material.hpp"
 #include "core/system/hierarchy/hierarchy.hpp"
-#include "editor/gizmo/gizmoController.hpp"
+#include "editor/gizmo/transformController.hpp"
 #include "core/system/transform/transform.hpp"
 #include "scene/scene.hpp"
 #include "core/debug/error.hpp"
@@ -19,7 +19,7 @@
 #include "editor/outline/outline.hpp"
 
 
-void Editor::Init(float Width, float Height,Window* window,Scene* scene,const mathpp::mat4f& projection, Camera* camera,TransformSystem* transformSystem,Hierarchy* hierarchy,MeshSystem* meshSystem, MaterialSystem* materialSystem,Renderer* renderer) {
+void Editor::Init(float Width, float Height,Window* window,Scene* scene,Input* input,const mathpp::mat4f& projection, Camera* camera,TransformSystem* transformSystem,Hierarchy* hierarchy,MeshSystem* meshSystem, MaterialSystem* materialSystem,Renderer* renderer) {
     p_window = window;
     p_scene = scene;
     m_width = Width;
@@ -30,39 +30,37 @@ void Editor::Init(float Width, float Height,Window* window,Scene* scene,const ma
     p_renderer = renderer;
     up_selector = std::make_unique<Selector>();
     up_gridRenderer = std::make_unique<GridRenderer>();
-    up_gizmoController = std::make_unique<GizmoController>();
+    up_gizmoController = std::make_unique<TransformController>();
     p_hierarchy = hierarchy;
     p_transformSystem = transformSystem;
     p_meshSystem = meshSystem;
     p_materialSystem = materialSystem;
-    up_input = std::make_unique<Input>(p_window);
+    p_input = input;
     up_selectionManager = std::make_unique<SelectionManager>();
-    up_editorInputMap = std::make_unique<EditorInputMap>(up_input.get());
+    up_editorInputMap = std::make_unique<EditorInputMap>(p_input);
     up_outline = std::make_unique<Outline>();
     up_ui = std::make_unique<UIManager>();
     up_gizmo = std::make_unique<Gizmo>();
     up_gridRenderer->Init(100);
     up_gizmo->Init(m_width,m_height,&m_gizmoData,p_transformSystem);
-    up_ui->Init(window,p_scene,p_transformSystem,p_hierarchy,&m_gizmoData,p_renderer,p_meshSystem,p_materialSystem,up_editorInputMap.get(),up_selectionManager.get(),up_input.get());
+    up_ui->Init(window,p_scene,p_transformSystem,p_hierarchy,&m_gizmoData,p_renderer,p_meshSystem,p_materialSystem,up_editorInputMap.get(),up_selectionManager.get(),p_input);
     up_selector->Init(m_width,m_height);
     up_outline->Init(meshSystem,transformSystem,up_selectionManager.get());
     up_gizmoController->Init(m_width,m_height,&m_gizmoData,p_transformSystem,up_selectionManager.get(),hierarchy);
-    auto handle1 = up_input->mouseDown.Subscribe([this](int mx, int my) { OnMouseDown(mx, my); });
-    auto handle2 = up_input->mouseUp.Subscribe([this](int mx, int my) {OnMouseUp(mx,my); });
+    auto handle1 = p_input->mouseDown.Subscribe([this](int mx, int my) { OnMouseDown(mx, my); });
+    auto handle2 = p_input->mouseUp.Subscribe([this](int mx, int my) {OnMouseUp(mx,my); });
 
-    v_handles.push_back(std::make_pair(&up_input->mouseDown,handle1));
-    v_handles.push_back(std::make_pair(&up_input->mouseUp,handle2));
+    v_handles.push_back(std::make_pair(&p_input->mouseDown,handle1));
+    v_handles.push_back(std::make_pair(&p_input->mouseUp,handle2));
 
 
 }
 
 void Editor::Run(float deltaT) {
-    up_input->Update();
-    p_camera->Update(up_input.get(),deltaT,{0.0f,0.0f,0.0f});
     up_gridRenderer->Render(p_camera->GetViewMatrix(),m_proj,p_camera->GetPosition());
     mathpp::vec2f pos;
 
-    up_input->GetCursorPos(pos);
+    p_input->GetCursorPos(pos);
     if (up_selectionManager->GetActiveSelected().has_value()) {
         Entity active = up_selectionManager->GetActiveSelected().value();
         mathpp::vec3f medianPos = ComputeMedianPos();
@@ -107,7 +105,7 @@ void Editor::TrySelect(int mx, int my) {
     }
 
 
-    if (up_input->IsShiftHeld()) {
+    if (p_input->IsShiftHeld()) {
         up_selectionManager->ToggleSelection(picked.value());
     } else {
         up_selectionManager->SetSelected(picked.value());
@@ -117,8 +115,8 @@ void Editor::TrySelect(int mx, int my) {
 void Editor::OnMouseDown(int mx, int my) {
     if (!up_ui->WantCaptureMouse()) {
         if (up_selectionManager->GetActiveSelected().has_value()) {
-            GizmoAxis pickedAxis = up_gizmo->ReadAxisAt(mx, my);
-            if (pickedAxis != GizmoAxis::None) {
+            TransformAxis pickedAxis = up_gizmo->ReadAxisAt(mx, my);
+            if (pickedAxis != TransformAxis::None) {
                 m_gizmoData.axis = pickedAxis;
                 Entity pickedEntity = up_selectionManager->GetActiveSelected().value();
                 mathpp::mat4f worldTransform = p_transformSystem->GetWorldTransform(pickedEntity);

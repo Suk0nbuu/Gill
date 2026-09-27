@@ -1,6 +1,6 @@
 #pragma once
 #include "mathpp.hpp"
-#include "gizmoData.hpp"
+#include "transformData.hpp"
 #include <memory>
 
 class Scene;
@@ -13,12 +13,12 @@ class TransformSystem;
 class Gizmo {
 public:
 
-    void Init(unsigned int width,unsigned int height,GizmoData* gizmoData,TransformSystem* transformSystem);
+    void Init(unsigned int width,unsigned int height,TransformData* gizmoData,TransformSystem* transformSystem);
     void Render(Scene* scene,const mathpp::mat4f& view, const mathpp::mat4f& projection,const mathpp::vec3f& gizmoPosition, const mathpp::vec3f& cameraPos,Entity entity);
     void RenderIDs(const mathpp::mat4f& view, const mathpp::mat4f& projection, const mathpp::vec3f& gizmoPosition, const mathpp::vec3f& cameraPos, Entity entity);
-    void UpdateHighlight(int x, int y,GizmoAxis dragAxis,bool isDragging = false);
+    void UpdateHighlight(int x, int y,TransformAxis dragAxis,bool isDragging = false);
     void DrawOriginMarker(const mathpp::mat4f& view, const mathpp::mat4f& projection,const mathpp::vec3f& gizmoPosition);
-    GizmoAxis ReadAxisAt(int x, int y) const;
+    TransformAxis ReadAxisAt(int x, int y) const;
     ~Gizmo();
 
 private:
@@ -36,7 +36,7 @@ private:
     unsigned int m_originVBO,m_originVAO;
     float m_width,m_height;
     float m_AxisHeight = 1.0f;
-    GizmoData* p_gizmoData;
-    GizmoAxis em_highlightedAxis = GizmoAxis::None;
+    TransformData* p_gizmoData;
+    TransformAxis em_highlightedAxis = TransformAxis::None;
     TransformSystem* p_transformSystem;
 };

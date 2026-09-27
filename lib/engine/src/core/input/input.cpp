@@ -8,6 +8,7 @@ void Input::Update() {
         m_lastMousePos  = {static_cast<float>(currentX),static_cast<float>(currentY)};
         m_firstUpdate = false;
         m_mouseDelta = {0.0f,0.0f};
+        m_scrollDelta = {0.0f, 0.0f};
         return;
     }
 
@@ -54,11 +55,21 @@ mathpp::vec2f Input::GetMouseDelta() const {
 }
 
 void Input::GetScroll(mathpp::vec2f &scroll) {
-
+    scroll = m_scrollDelta;
 }
 
 Input::Input(Window* window) {
     p_window = window;
+    glfwSetWindowUserPointer(p_window->GetWindow(), this);
+    glfwSetScrollCallback(p_window->GetWindow(), &Input::ScrollCallback);
+}
+
+void Input::ScrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
+    auto* self = static_cast<Input*>(glfwGetWindowUserPointer(window));
+    if (self) {
+        self->m_scrollDelta.x += static_cast<float>(xoffset);
+        self->m_scrollDelta.y += static_cast<float>(yoffset);
+    }
 }
 
 Input::~Input() = default;
@@ -86,4 +97,8 @@ bool Input::IsKeyUp(int key) const {
 
 bool Input::IsShiftHeld() const {
     return ar_currKeys[GLFW_KEY_LEFT_SHIFT] || ar_currKeys[GLFW_KEY_RIGHT_SHIFT];
+}
+
+void Input::ClearFrameState() {
+    m_scrollDelta = {0.0f, 0.0f};
 }

@@ -5,7 +5,7 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 #include "core/system/transform/transform.hpp"
-#include "editor/gizmo/gizmoData.hpp"
+#include "editor/gizmo/transformData.hpp"
 #include "render/core/renderer.hpp"
 #include "core/input/input.hpp"
 #include "core/system/mesh/mesh.hpp"
@@ -13,7 +13,7 @@
 #include "editor/selector/selectionManager.hpp"
 
 
-void UIManager::Init(Window* window,Scene* scene,TransformSystem* transformSystem, Hierarchy* hierarchy,GizmoData* gizmoData,Renderer* renderer,MeshSystem* meshSystem,MaterialSystem* materialSystem,EditorInputMap* editorInputMap,SelectionManager* selectionManager,Input* input) {
+void UIManager::Init(Window* window,Scene* scene,TransformSystem* transformSystem, Hierarchy* hierarchy,TransformData* gizmoData,Renderer* renderer,MeshSystem* meshSystem,MaterialSystem* materialSystem,EditorInputMap* editorInputMap,SelectionManager* selectionManager,Input* input) {
     ImGui::CreateContext();
     p_io_ptr = &ImGui::GetIO(); (void)p_io_ptr;
     p_io_ptr->ConfigFlags |= ImGuiConfigFlags_DockingEnable; //Enable Docking
@@ -93,8 +93,8 @@ bool UIManager::WantCaptureMouse() {
 void GizmoPanel::Draw() {
     ImGui::Begin("Gizmo");
 
-    const char* modeLabel = m_ctx.p_gizmoData->mode == GizmoMode::Translate ? "Translate"
-                           : m_ctx.p_gizmoData->mode == GizmoMode::Rotate ? "Rotate" : "Scale";
+    const char* modeLabel = m_ctx.p_gizmoData->mode == TransformMode::Translate ? "Translate"
+                           : m_ctx.p_gizmoData->mode == TransformMode::Rotate ? "Rotate" : "Scale";
     if (ImGui::Button(modeLabel, ImVec2{80, 20})) {
         SwitchMode(m_ctx.p_gizmoData);
     }

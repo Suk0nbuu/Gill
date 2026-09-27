@@ -15,7 +15,7 @@ add_library(engine STATIC
         src/editor/grid/grid.cpp
         src/editor/gizmo/gizmo.cpp
         src/io/obj/obj.cpp
-        src/editor/gizmo/gizmoController.cpp
+        src/editor/gizmo/transformController.cpp
         src/core/system/hierarchy/hierarchy.cpp
         include/core/engine/engine.hpp
         include/core/window/window.hpp
@@ -40,8 +40,8 @@ add_library(engine STATIC
         include/io/obj/obj.hpp
         include/editor/core/editor.hpp
         include/core/component/event/event.hpp
-        include/editor/gizmo/gizmoData.hpp
-        include/editor/gizmo/gizmoController.hpp
+        include/editor/gizmo/transformData.hpp
+        include/editor/gizmo/transformController.hpp
         include/component/parent.hpp
         include/core/set/sparseset.hpp
         include/core/system/hierarchy/hierarchy.hpp
@@ -67,6 +67,8 @@ add_library(engine STATIC
         src/editor/selector/selectionManager.cpp
         include/editor/outline/outline.hpp
         src/editor/outline/outline.cpp
+        include/editor/gizmo/gizmoAdapter.hpp
+        src/editor/gizmo/gizmoAdapter.cpp
 
 
 )

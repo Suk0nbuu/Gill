@@ -33,13 +33,16 @@ private:
     float m_yaw = -90.0f;
     float m_pitch = 0.0f;
     float m_speed = 5.0f;
+    float m_speedSens = 0.2f;
+    float m_minSpeed = 0.01f;
+    float m_maxSpeed = 20.0f;
     float m_sens = 0.1f;
 };
 
 //Orbit camera
 class OrbitCamera : public ICamera {
 public:
-    void Update(Input* input, float deltaTime, const mathpp::vec3f& target) override;
+    void Update(Input* input, float deltaTime, const mathpp::vec3f&) override;
     mathpp::vec3f GetPosition() const override;
     mathpp::mat4f GetViewMatrix() const override;
 
@@ -47,11 +50,18 @@ private:
     mathpp::vec3f m_eye;
     mathpp::vec3f m_target;
     mathpp::mat4f m_viewMatrix;
+    mathpp::vec3f m_panOffset{};
+
 
     float m_yaw = 0.0f;
     float m_pitch = 0.0f;
     float m_distance = 10.0f;
     float m_sens = 0.1f;
+    float m_zoom = 1.0f;
+    float m_zoomSens = 0.2f;
+    float m_minDistance = 0.01f;
+    float m_maxDistance = 100.0f;
+    float m_panSens = 0.2f;
 };
 
 // Owner / mode switcher

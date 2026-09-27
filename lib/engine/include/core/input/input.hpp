@@ -24,11 +24,14 @@ public:
     bool IsShiftHeld() const;
     ~Input();
     mathpp::vec2f GetMouseDelta() const;
+    void ClearFrameState();
     EventDelegate<int,int> mouseUp;
     EventDelegate<int,int> mouseDown;
 private:
     mathpp::vec2f m_mouseDelta;
     mathpp::vec2f m_lastMousePos;
+    mathpp::vec2f m_scrollDelta{};
+    static void ScrollCallback(GLFWwindow* window, double xoffset, double yoffset);
     bool m_firstUpdate = true;
     bool m_wasHeld = false;
     Window* p_window;

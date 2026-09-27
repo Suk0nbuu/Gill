@@ -27,7 +27,7 @@ class Renderer;
 class Input;
 class EditorInputMap;
 class SelectionManager;
-struct GizmoData;
+struct TransformData;
 
 
 
@@ -77,7 +77,7 @@ struct PrimitiveData {
 
 class UIManager {
 public:
-    void Init(Window* window,Scene* scene,TransformSystem* transformSystem, Hierarchy* hierarchy,GizmoData* gizmoData,Renderer* renderer,MeshSystem* meshSystem,MaterialSystem* materialSystem,EditorInputMap* editorInputMap,SelectionManager* selectionManager,Input* input);
+    void Init(Window* window,Scene* scene,TransformSystem* transformSystem, Hierarchy* hierarchy,TransformData* gizmoData,Renderer* renderer,MeshSystem* meshSystem,MaterialSystem* materialSystem,EditorInputMap* editorInputMap,SelectionManager* selectionManager,Input* input);
     void RenderPanels();
     void RenderAddMenu(Scene* scene);
     void RenderPrimitiveOp(Scene* scene);

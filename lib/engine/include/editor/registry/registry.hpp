@@ -8,7 +8,7 @@ class Scene;
 
 using Entity = uint32_t;
 
-struct GizmoData;
+struct TransformData;
 
 class TransformSystem;
 class Renderer;
@@ -19,7 +19,7 @@ class Input;
 
 struct EditorContext {
     Input* p_input;
-    GizmoData* p_gizmoData;
+    TransformData* p_gizmoData;
     TransformSystem* p_transformSystem;
     Renderer* p_renderer;
     MeshSystem* p_meshSystem;

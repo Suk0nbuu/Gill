@@ -10,7 +10,7 @@
 
 class Outline;
 class Renderer;
-class GizmoController;
+class TransformController;
 class Input;
 class UIManager;
 class GridRenderer;
@@ -32,7 +32,7 @@ using MouseEvent = EventDelegate<int,int>;
 class Editor {
 public:
     Editor();
-    void Init(float width, float height,Window* window,Scene* scene,const mathpp::mat4f& projection,Camera* camera,TransformSystem* transformSystem,Hierarchy* hierarchy,MeshSystem* meshSystem, MaterialSystem* materialSystem,Renderer* renderer);
+    void Init(float width, float height,Window* window,Scene* scene,Input* input,const mathpp::mat4f& projection,Camera* camera,TransformSystem* transformSystem,Hierarchy* hierarchy,MeshSystem* meshSystem, MaterialSystem* materialSystem,Renderer* renderer);
     void Run(float deltaT);
     void ShutDown();
     void OnMouseDown(int mx, int my);
@@ -47,18 +47,18 @@ private:
 
     std::unique_ptr<Gizmo> up_gizmo;
     std::unique_ptr<GridRenderer> up_gridRenderer;
-    std::unique_ptr<Input> up_input;
+    Input* p_input;
     std::unique_ptr<UIManager> up_ui;
     std::unique_ptr<Selector> up_selector;
     std::unique_ptr<SelectionManager> up_selectionManager;
-    std::unique_ptr<GizmoController> up_gizmoController;
+    std::unique_ptr<TransformController> up_gizmoController;
     std::unique_ptr<EditorInputMap> up_editorInputMap;
     std::unique_ptr<Outline> up_outline;
     Hierarchy* p_hierarchy;
     Camera* p_camera;
     Scene* p_scene;
     Window* p_window;
-    GizmoData m_gizmoData;
+    TransformData m_gizmoData;
     MeshSystem* p_meshSystem;
     MaterialSystem* p_materialSystem;
     TransformSystem* p_transformSystem;
