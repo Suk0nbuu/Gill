@@ -88,6 +88,15 @@ T determinant(const mat4<T>& m) {
         );
         return determinant(upper);
     }
+    template<typename T>
+    mat4<T> MakeMat4FromColumnMajorElements(const float m[16]) {
+        mat4<T> result;
+        result.col[0] = vec4<T>(m[0],  m[1],  m[2],  m[3]);
+        result.col[1] = vec4<T>(m[4],  m[5],  m[6],  m[7]);
+        result.col[2] = vec4<T>(m[8],  m[9],  m[10], m[11]);
+        result.col[3] = vec4<T>(m[12], m[13], m[14], m[15]);
+        return result;
+    }
     using mat4f = mat4<float>;
     using mat4d = mat4<double>;
 }

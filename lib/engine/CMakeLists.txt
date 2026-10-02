@@ -69,10 +69,19 @@ add_library(engine STATIC
         src/editor/outline/outline.cpp
         include/editor/gizmo/gizmoAdapter.hpp
         src/editor/gizmo/gizmoAdapter.cpp
+        include/core/system/armature/armature.hpp
+        src/core/system/armature/armature.cpp
+        include/io/gltf/gltf.hpp
+        src/io/gltf/gltf.cpp
+        include/core/debug/test.hpp
+        src/core/debug/test.cpp
+        include/component/armature.hpp
+        include/render/shader/shaderVariant.hpp
+        src/render/shader/shaderVariant.cpp
 
 
 )
 
-target_link_libraries(engine PUBLIC glad glfw mathpp imgui stb_image magic_enum::magic_enum)
+target_link_libraries(engine PUBLIC glad glfw mathpp imgui stb_image magic_enum::magic_enum cgltf)
 target_include_directories(engine PUBLIC include)
 target_compile_definitions(engine PUBLIC GLFW_INCLUDE_NONE)

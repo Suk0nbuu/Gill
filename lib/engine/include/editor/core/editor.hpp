@@ -8,6 +8,7 @@
 
 
 
+
 class Outline;
 class Renderer;
 class TransformController;
@@ -24,6 +25,8 @@ class MeshSystem;
 class MaterialSystem;
 class EditorInputMap;
 class SelectionManager;
+class ArmatureSystem;
+class GizmoAdapter;
 
 using MouseEvent = EventDelegate<int,int>;
 
@@ -32,11 +35,9 @@ using MouseEvent = EventDelegate<int,int>;
 class Editor {
 public:
     Editor();
-    void Init(float width, float height,Window* window,Scene* scene,Input* input,const mathpp::mat4f& projection,Camera* camera,TransformSystem* transformSystem,Hierarchy* hierarchy,MeshSystem* meshSystem, MaterialSystem* materialSystem,Renderer* renderer);
+    void Init(float width, float height,Window* window,Scene* scene,Input* input,const mathpp::mat4f& projection,Camera* camera,TransformSystem* transformSystem,Hierarchy* hierarchy,MeshSystem* meshSystem, MaterialSystem* materialSystem,Renderer* renderer,ArmatureSystem* armatureSystem);
     void Run(float deltaT);
     void ShutDown();
-    void OnMouseDown(int mx, int my);
-    void OnMouseUp(int mx, int my);
     ~Editor();
 
 private:
@@ -44,6 +45,7 @@ private:
 
     void TrySelect(int mx, int my);
     mathpp::vec3f ComputeMedianPos();
+    void UpdateCursorForModalDrag();
 
     std::unique_ptr<Gizmo> up_gizmo;
     std::unique_ptr<GridRenderer> up_gridRenderer;
@@ -51,7 +53,8 @@ private:
     std::unique_ptr<UIManager> up_ui;
     std::unique_ptr<Selector> up_selector;
     std::unique_ptr<SelectionManager> up_selectionManager;
-    std::unique_ptr<TransformController> up_gizmoController;
+    std::unique_ptr<TransformController> up_transformController;
+    std::unique_ptr<GizmoAdapter> up_gizmoAdapter;
     std::unique_ptr<EditorInputMap> up_editorInputMap;
     std::unique_ptr<Outline> up_outline;
     Hierarchy* p_hierarchy;
@@ -62,6 +65,7 @@ private:
     MeshSystem* p_meshSystem;
     MaterialSystem* p_materialSystem;
     TransformSystem* p_transformSystem;
+    ArmatureSystem* p_armatureSystem;
     Renderer* p_renderer;
     std::vector<std::pair<MouseEvent*, MouseEvent::Handle>> v_handles;
     mathpp::mat4f m_proj;

@@ -5,77 +5,36 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
-Shader::Shader(const std::string& vertPath,const std::string& fragPath) {
-    std::stringstream vertStream;
-    std::stringstream fragStream;
-    std::string vertStr;
-    std::string fragStr;
+#include <filesystem>
 
-    try {
-        std::ifstream vertexShaderCode(vertPath);
-        if (!vertexShaderCode.is_open()) {
-            std::cerr << "Failed to open vertex shader file: " << vertPath << std::endl;
+std::string Shader::LoadShaderSourceWithIncludes(const std::string& path) {
+    std::ifstream file(path);
+    if (!file.is_open()) {
+        std::cerr << "Failed to open shader file: " << path << std::endl;
+        return "";
+    }
+
+    std::stringstream result;
+    std::string line;
+    while (std::getline(file, line)) {
+        if (line.rfind("#include", 0) == 0) {
+            size_t firstQuote = line.find('"');
+            size_t lastQuote = line.rfind('"');
+            if (firstQuote == std::string::npos || lastQuote == firstQuote) {
+                std::cerr << "Malformed #include in " << path << ": " << line << std::endl;
+                continue;
+            }
+            std::string includeName = line.substr(firstQuote + 1, lastQuote - firstQuote - 1);
+            std::string includePath = std::filesystem::path(path).parent_path().string() + "/" + includeName;
+            result << LoadShaderSourceWithIncludes(includePath); // recursive — nested includes work too
+        } else {
+            result << line << "\n";
         }
-        std::ifstream fragmentShadeCode(fragPath);
-        if (!fragmentShadeCode.is_open()) {
-            std::cerr << "Failed to open fragment shader file: " << fragPath << std::endl;
-        }
-        vertStream << vertexShaderCode.rdbuf();
-        fragStream << fragmentShadeCode.rdbuf();
-        vertStr = vertStream.str();
-        fragStr = fragStream.str();
     }
-    catch (std::ifstream::failure& e) {
-        std::cerr << e.what() << std::endl;
-    }
-
-    const char* vertCode = vertStr.c_str();
-    const char* fragCode = fragStr.c_str();
-
-    unsigned int vertexShader, fragmentShader;
-
-    vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertexShader, 1, &vertCode, NULL);
-    int successv;
-    char infoLogv[512];
-
-    glCompileShader(vertexShader);
-    glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &successv);
-    if (!successv) {
-        glGetShaderInfoLog(vertexShader, 512, NULL, infoLogv);
-        std::cerr << "Vertex shader compile error:\n" << infoLogv << std::endl;
-    }
-    fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragmentShader, 1, &fragCode, NULL);
-    int successf;
-    char infoLogf[512];
-
-    glCompileShader(fragmentShader);
-    glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &successf);
-    if (!successf) {
-        glGetShaderInfoLog(vertexShader, 512, NULL, infoLogf);
-        std::cerr << "Fragment shader compile error:\n" << infoLogf << std::endl;
-    }
-
-
-
-
-
-    m_ID = glCreateProgram();
-    glAttachShader(m_ID, vertexShader);
-    glAttachShader(m_ID, fragmentShader);
-    glLinkProgram(m_ID);
-    glValidateProgram(m_ID);
-    int successLink;
-    glGetProgramiv(m_ID, GL_LINK_STATUS, &successLink);
-    if (!successLink) {
-        char infoLog[512];
-        glGetProgramInfoLog(m_ID, 512, NULL, infoLog);
-        std::cerr << "Shader program link error:\n" << infoLog << std::endl;
-    }
-    glDeleteShader(vertexShader);
-    glDeleteShader(fragmentShader);
+    return result.str();
 }
+
+
 
 void Shader::setBool(const std::string &name, bool value) const {
     glUniform1i(glGetUniformLocation(m_ID, name.c_str()),static_cast<int> (value));
@@ -126,4 +85,73 @@ Shader& Shader::operator=(Shader&& other) noexcept {
 void Shader::setMat3f(const std::string &name, const mathpp::mat3f &matrix) const {
     const float* p = &matrix.col[0][0];
     glUniformMatrix3fv(glGetUniformLocation(m_ID, name.c_str()),1,GL_FALSE,p);
+}
+
+
+
+
+Shader::Shader(const std::string& vertPath, const std::string& fragPath, const std::string& defines) {
+    std::string vertStr = LoadShaderSourceWithIncludes(vertPath);
+    std::string fragStr = LoadShaderSourceWithIncludes(fragPath);
+
+    if (!defines.empty()) {
+        vertStr = InjectDefines(vertStr, defines);
+        fragStr = InjectDefines(fragStr, defines);
+    }
+
+    if (vertStr.empty()) std::cerr << "Vertex shader source is empty: " << vertPath << std::endl;
+    if (fragStr.empty()) std::cerr << "Fragment shader source is empty: " << fragPath << std::endl;
+
+    const char* vertCode = vertStr.c_str();
+    const char* fragCode = fragStr.c_str();
+
+    unsigned int vertexShader, fragmentShader;
+
+    vertexShader = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(vertexShader, 1, &vertCode, NULL);
+    int successv;
+    char infoLogv[512];
+
+    glCompileShader(vertexShader);
+    glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &successv);
+    if (!successv) {
+        glGetShaderInfoLog(vertexShader, 512, NULL, infoLogv);
+        std::cerr << "Vertex shader compile error:\n" << infoLogv << std::endl;
+    }
+    fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(fragmentShader, 1, &fragCode, NULL);
+    int successf;
+    char infoLogf[512];
+
+    glCompileShader(fragmentShader);
+    glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &successf);
+    if (!successf) {
+        glGetShaderInfoLog(fragmentShader, 512, NULL, infoLogf);
+        std::cerr << "Fragment shader compile error:\n" << infoLogf << std::endl;
+    }
+
+
+
+
+
+    m_ID = glCreateProgram();
+    glAttachShader(m_ID, vertexShader);
+    glAttachShader(m_ID, fragmentShader);
+    glLinkProgram(m_ID);
+    glValidateProgram(m_ID);
+    int successLink;
+    glGetProgramiv(m_ID, GL_LINK_STATUS, &successLink);
+    if (!successLink) {
+        char infoLog[512];
+        glGetProgramInfoLog(m_ID, 512, NULL, infoLog);
+        std::cerr << "Shader program link error:\n" << infoLog << std::endl;
+    }
+    glDeleteShader(vertexShader);
+    glDeleteShader(fragmentShader);
+}
+
+std::string Shader::InjectDefines(const std::string& source, const std::string& defines) {
+    size_t versionEnd = source.find('\n');
+    if (versionEnd == std::string::npos) return defines + source;
+    return source.substr(0, versionEnd + 1) + defines + source.substr(versionEnd + 1);
 }

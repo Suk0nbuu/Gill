@@ -9,6 +9,7 @@
 #include "component/material.hpp"
 #include <optional>
 #include "render/mesh/mesh.hpp"
+#include "component/armature.hpp"
 #include <unordered_set>
 
 class Scene {
@@ -82,6 +83,7 @@ T* TryGetComponent(Entity entity);
     SparseSet<comp::MeshComponent> m_meshes;
     SparseSet<comp::SunlightComponent> m_sunlights;
     SparseSet<comp::MaterialComponent> m_materials;
+    SparseSet<comp::ArmatureComponent> m_armatures;
 };
 
 
@@ -156,6 +158,20 @@ T* TryGetComponent(Entity entity);
         return nullptr;
     }
     template<>
+    inline comp::ArmatureComponent* Scene::TryGetComponent<comp::ArmatureComponent>(Entity entity) {
+        if (m_armatures.Has(entity)) {
+            return &m_armatures.Get(entity);
+        }
+        return nullptr;
+    }
+    template<>
+    inline const comp::ArmatureComponent* Scene::TryGetComponent<comp::ArmatureComponent>(Entity entity) const {
+        if (m_armatures.Has(entity)) {
+            return &m_armatures.Get(entity);
+        }
+        return nullptr;
+    }
+    template<>
     inline void Scene::InsertComponent<comp::MeshComponent>(Entity entity,const comp::MeshComponent& component) {
         m_meshes.Insert(entity, component);
     }
@@ -163,6 +179,15 @@ T* TryGetComponent(Entity entity);
     inline void Scene::InsertComponent<comp::MaterialComponent>(Entity entity,const comp::MaterialComponent& component) {
         m_materials.Insert(entity,component);
     }
+    template<>
+    inline void Scene::InsertComponent<comp::ArmatureComponent>(Entity entity, const comp::ArmatureComponent& component) {
+        m_armatures.Insert(entity,component);
+    }
+    template<>
+    inline void Scene::RemoveComponent<comp::ArmatureComponent>(Entity entity) {
+        m_armatures.Remove(entity);
+    }
+
     template<>
     inline void Scene::RemoveComponent<comp::MeshComponent>(Entity entity) {
         m_meshes.Remove(entity);

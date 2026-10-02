@@ -6,6 +6,12 @@ namespace mathpp {
         T x,y;
         vec2(T x, T y) : x(x), y(y) {}
         vec2() : x(0), y(0) {}
+
+        vec2& operator+=(const vec2& rhs) {
+            x += rhs.x;
+            y += rhs.y;
+            return *this;
+        }
     };
 
     template <typename T>

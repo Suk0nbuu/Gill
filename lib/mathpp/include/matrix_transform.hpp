@@ -54,7 +54,13 @@ namespace mathpp {
     template <typename T>
     mat4<T> look_at(const vec3<T>& eye, const vec3<T>& target, const vec3<T>& up) {
         vec3<T> f = normalize(target - eye);      // forward
-        vec3<T> r = normalize(cross(f, up));      // right
+
+        vec3<T> upRef = up;
+        if (std::abs(dot(f, up)) > T(0.999)) {
+            upRef = vec3<T>(T(0), T(0), T(1)); // f is nearly parallel to the given up — fall back to avoid a degenerate cross product
+        }
+
+        vec3<T> r = normalize(cross(f, upRef));   // right
         vec3<T> u = cross(r, f);                  // recomputed up (already unit length, no need to normalize)
 
         mat4<T> result;

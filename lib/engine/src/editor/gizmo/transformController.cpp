@@ -26,6 +26,8 @@ bool TransformController::IsDragging() {
 
 void TransformController::Begin(const mathpp::mat4f& view, const mathpp::mat4f& proj, float mouseX, float mouseY) {
     if (isDragging) return;
+    if (!p_selectionManager->GetActiveSelected().has_value()) return;
+    m_screenCorrection = {0.0f, 0.0f};
     m_transformAxis = GetAxis();
     auto selected = p_selectionManager->GetAllSelected();
     m_pivotStartPos = ComputeMedianPos(selected);
@@ -354,6 +356,7 @@ bool TransformController::ContinueTranslateFree(const mathpp::mat4f& view, const
 
 void TransformController::EnterMode(TransformMode mode, const mathpp::mat4f& view, const mathpp::mat4f& proj, float mouseX, float mouseY) {
     if (isDragging) return;
+    if (!p_selectionManager->GetActiveSelected().has_value()) return;
     p_gizmoData->mode = mode;
     p_gizmoData->axis = TransformAxis::None;
     p_gizmoData->referenceFrame = ReferenceFrame::World;
@@ -389,7 +392,7 @@ void TransformController::RebaseDragStart(const mathpp::mat4f& view, const mathp
 
 Ray TransformController::GetMouseRay(const mathpp::mat4f& view, const mathpp::mat4f& proj, float mouseX, float mouseY) const {
     float ndcX{}, ndcY{};
-    ComputeNDC(ndcX, ndcY, mouseX, mouseY);
+    ComputeNDC(ndcX, ndcY, mouseX + m_screenCorrection.x, mouseY + m_screenCorrection.y);
     return ScreenToRay(ndcX, ndcY, view, proj);
 }
 
@@ -410,4 +413,7 @@ bool TransformController::ProjectRayOntoAxis(const mathpp::vec3f& axisDir, const
     if (denom <= minDenom) return false;
     outT = (b * e - d) / denom;
     return true;
+}
+void TransformController::AddScreenCorrection(const mathpp::vec2f& delta) {
+    m_screenCorrection += delta;
 }

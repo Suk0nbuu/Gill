@@ -22,6 +22,7 @@ public:
     void SetCursorMode(int mode);
     void GetCursorPos(mathpp::vec2f& pos);
     bool IsShiftHeld() const;
+    bool WrapCursor(float minX, float minY, float maxX, float maxY, mathpp::vec2f& outCorrection);
     ~Input();
     mathpp::vec2f GetMouseDelta() const;
     void ClearFrameState();

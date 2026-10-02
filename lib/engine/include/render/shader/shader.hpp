@@ -3,9 +3,10 @@
 
 #include "mathpp.hpp"
 
+
+
 class Shader {
 public:
-    Shader(const std::string& vertPath,const std::string& fragPath);
     ~Shader();
 
     Shader(const Shader&) = delete;
@@ -13,6 +14,10 @@ public:
 
     Shader(Shader&& other) noexcept;
     Shader& operator=(Shader&& other) noexcept;
+    Shader(const std::string& vertPath, const std::string& fragPath, const std::string& defines = "");
+
+
+
 
     void Use() const;
     void setBool(const std::string& name, bool value) const;
@@ -24,6 +29,8 @@ public:
     void setMat3f(const std::string& name, const mathpp::mat3f& matrix) const;
 
 private:
+    static std::string LoadShaderSourceWithIncludes(const std::string& path);
+    static std::string InjectDefines(const std::string& source, const std::string& defines);
     unsigned int m_ID;
 
 };

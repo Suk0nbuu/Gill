@@ -29,18 +29,22 @@ FetchContent_MakeAvailable(magic_enum)
 
 
 
+
+
 add_subdirectory(extern/glad)
 add_subdirectory(extern/imgui)
 add_subdirectory(extern/stb_image)
 add_subdirectory(lib/mathpp)
 add_subdirectory(lib/engine)
+add_subdirectory(extern/cgltf)
 
 
 
 
 add_executable(gill source/gill/main.cpp
         source/gill/app.hpp
-        source/gill/app.cpp)
+        source/gill/app.cpp
+        extern/cgltf/cgltf.cpp)
 
 
 

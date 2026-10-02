@@ -23,7 +23,7 @@ void App::Init(unsigned int width, unsigned int height) {
     up_camera = std::make_unique<Camera>();
     up_input = std::make_unique<Input>(up_window.get());
     up_engine->Init(static_cast<int>(m_width),static_cast<int>(m_height),up_camera.get(),up_scene.get());
-    up_editor->Init(m_width,m_height,up_window.get(),up_scene.get(),up_input.get(),m_projection,up_camera.get(),up_engine->GetTransformSystem(),up_engine->GetHierarchy(),up_engine->GetMeshSystem(),up_engine->GetMaterialSystem(),up_engine->GetRenderer());
+    up_editor->Init(m_width,m_height,up_window.get(),up_scene.get(),up_input.get(),m_projection,up_camera.get(),up_engine->GetTransformSystem(),up_engine->GetHierarchy(),up_engine->GetMeshSystem(),up_engine->GetMaterialSystem(),up_engine->GetRenderer(),up_engine->GetArmatureSystem());
 }
 
 
@@ -35,7 +35,7 @@ void App::Run() {
         up_window->PollEvents();
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
         up_input->Update();
-        up_camera->Update(up_input.get(),m_deltaTime,{0.0f,0.0f,0.0f});
+        up_camera->Update(up_input.get(),m_deltaTime,{0.0f,0.0f,0.0f},false);
         up_engine->Run();
         up_editor->Run(m_deltaTime);
         up_input->ClearFrameState();

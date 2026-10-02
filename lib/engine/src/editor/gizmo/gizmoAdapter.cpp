@@ -35,3 +35,5 @@ void GizmoAdapter::OnMouseUp() {
         p_controller->End();
     }
 }
+
+GizmoAdapter::~GizmoAdapter() = default;

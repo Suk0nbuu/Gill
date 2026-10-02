@@ -102,3 +102,26 @@ bool Input::IsShiftHeld() const {
 void Input::ClearFrameState() {
     m_scrollDelta = {0.0f, 0.0f};
 }
+
+
+bool Input::WrapCursor(float minX, float minY, float maxX, float maxY, mathpp::vec2f& outCorrection) {
+    double x, y;
+    glfwGetCursorPos(p_window->GetWindow(), &x, &y);
+
+    double newX = x, newY = y;
+    bool wrapped = false;
+
+    if (x < minX) { newX = maxX; wrapped = true; }
+    else if (x > maxX) { newX = minX; wrapped = true; }
+    if (y < minY) { newY = maxY; wrapped = true; }
+    else if (y > maxY) { newY = minY; wrapped = true; }
+
+    if (wrapped) {
+        glfwSetCursorPos(p_window->GetWindow(), newX, newY);
+        outCorrection = {static_cast<float>(newX - x), static_cast<float>(newY - y)};
+        m_lastMousePos = {static_cast<float>(newX), static_cast<float>(newY)};
+        return true;
+    }
+    outCorrection = {0.0f, 0.0f};
+    return false;
+}

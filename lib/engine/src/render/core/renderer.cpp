@@ -5,15 +5,17 @@
 #include "core/system/mesh/mesh.hpp"
 #include <glad/gl.h>
 #include <GLFW/glfw3.h>
-
+#include "core/system/armature/armature.hpp"
+#include "component/armature.hpp"
 #include "core/system/material/material.hpp"
 #include "scene/scene.hpp"
 
-void Renderer::Init(TransformSystem* transformSystem,MeshSystem* meshSystem,MaterialSystem* materialSystem) {
+void Renderer::Init(TransformSystem* transformSystem,MeshSystem* meshSystem,MaterialSystem* materialSystem,ArmatureSystem* armatureSystem) {
     glEnable(GL_DEPTH_TEST);
     p_transformSystem = transformSystem;
     p_meshSystem = meshSystem;
     p_materialSystem = materialSystem;
+    p_armatureSystem = armatureSystem;
     textureShader = std::make_unique<Shader>("asset/shader/textureShader/textureVert.glsl","asset/shader/textureShader/textureFrag.glsl");
     solidShader = std::make_unique<Shader>("asset/shader/solidShader/solidVert.glsl","asset/shader/solidShader/solidFrag.glsl");
     matCapTexture = std::make_unique<Texture>("asset/texture/core/SolidTex2.png");
@@ -47,20 +49,24 @@ void Renderer::DrawEntity(const Scene* scene, Entity entity,
     auto mesh = p_meshSystem->GetMesh(meshComp.meshID);
     if (!mesh) return;
 
+    uint32_t features = mesh->IsSkinned() ? Feature_Skinning : Feature_None;
 
     if (em_viewportMode == ViewportMode::Solid) {
-        solidShader->Use();
-        solidShader->setMat4f("view", view);
-        solidShader->setMat4f("projection", proj);
+        Shader* shader = m_shaderCache.Get("asset/shader/solidShader/solidVert.glsl", "asset/shader/solidShader/solidFrag.glsl", features);
+        shader->Use();
+        shader->setMat4f("view", view);
+        shader->setMat4f("projection", proj);
         mathpp::mat4f model = p_transformSystem->GetWorldTransform(entity);
-        solidShader->setMat4f("model", model );
+        shader->setMat4f("model", model);
         mathpp::mat3f normalMat = mathpp::normal_matrix(view * model);
-        solidShader->setMat3f("normalMatrix", normalMat);
+        shader->setMat3f("normalMatrix", normalMat);
         matCapTexture->Bind(0);
-        solidShader->setInt("matCap",0);
+        shader->setInt("matCap", 0);
+
+        if (features & Feature_Skinning) UploadSkinningPalette(scene, entity, *shader);
     } else if (em_viewportMode == ViewportMode::Rendered) {
-        const Shader* shader = mat ? p_materialSystem->GetShader(mat->shaderID) : nullptr;
-        if (!shader) shader = solidShader.get(); // no material yet -> fall back
+        const Shader* baseShader = mat ? p_materialSystem->GetShader(mat->shaderID) : nullptr;
+        const Shader* shader = baseShader ? baseShader : solidShader.get();
         shader->Use();
         shader->setMat4f("view", view);
         shader->setMat4f("projection", proj);
@@ -70,15 +76,17 @@ void Renderer::DrawEntity(const Scene* scene, Entity entity,
         shader->setVec3f("lightDir", mathpp::vec3f{0.8f,0.2f,0.0f});
     }
     else {
-        textureShader->Use();
+        Shader* shader = m_shaderCache.Get("asset/shader/textureShader/textureVert.glsl", "asset/shader/textureShader/textureFrag.glsl", features);
+        shader->Use();
         const Texture* tex = mat ? p_materialSystem->GetTexture(mat->textureID) : nullptr;
         if (!tex) tex = fallBackTexture.get();
         tex->Bind(0);
-        textureShader->setInt("meshTexture", 0);
-        textureShader->setMat4f("view", view);
-        textureShader->setMat4f("projection", proj);
-        textureShader->setMat4f("model", p_transformSystem->GetWorldTransform(entity));
+        shader->setInt("meshTexture", 0);
+        shader->setMat4f("view", view);
+        shader->setMat4f("projection", proj);
+        shader->setMat4f("model", p_transformSystem->GetWorldTransform(entity));
 
+        if (features & Feature_Skinning) UploadSkinningPalette(scene, entity, *shader);
     }
 
     mesh->Draw();
@@ -86,3 +94,11 @@ void Renderer::DrawEntity(const Scene* scene, Entity entity,
 
 Renderer::~Renderer() = default;
 
+void Renderer::UploadSkinningPalette(const Scene* scene, Entity entity, const Shader& shader) {
+    const auto* armComp = scene->TryGetComponent<comp::ArmatureComponent>(entity);
+    if (!armComp) return;
+    std::vector<mathpp::mat4f> palette = p_armatureSystem->ComputeSkinningPalette(*armComp);
+    for (size_t i = 0; i < palette.size(); ++i) {
+        shader.setMat4f("boneMatrices[" + std::to_string(i) + "]", palette[i]);
+    }
+}

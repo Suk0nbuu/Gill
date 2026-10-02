@@ -12,7 +12,7 @@ class TransformSystem;
 class Hierarchy;
 class MeshSystem;
 class MaterialSystem;
-
+class ArmatureSystem;
 
 class Engine {
 
@@ -27,6 +27,7 @@ public:
     MeshSystem* GetMeshSystem();
     MaterialSystem* GetMaterialSystem();
     Renderer* GetRenderer();
+    ArmatureSystem* GetArmatureSystem();
 
 private:
     unsigned int m_width,m_height;
@@ -35,6 +36,7 @@ private:
     std::unique_ptr<Hierarchy> up_hierarchy;
     std::unique_ptr<MaterialSystem> up_materialSystem;
     std::unique_ptr<MeshSystem> up_meshSystem;
+    std::unique_ptr<ArmatureSystem> up_armatureSystem;
     Camera* p_cam;
     Scene* p_scene;
 
