@@ -31,12 +31,15 @@ FetchContent_MakeAvailable(magic_enum)
 
 
 
+
 add_subdirectory(extern/glad)
 add_subdirectory(extern/imgui)
 add_subdirectory(extern/stb_image)
 add_subdirectory(lib/mathpp)
 add_subdirectory(lib/engine)
 add_subdirectory(extern/cgltf)
+add_subdirectory(lib/launcher)
+add_subdirectory(extern/nfd)
 
 
 
@@ -44,7 +47,9 @@ add_subdirectory(extern/cgltf)
 add_executable(gill source/gill/main.cpp
         source/gill/app.hpp
         source/gill/app.cpp
-        extern/cgltf/cgltf.cpp)
+        extern/cgltf/cgltf.cpp
+        lib/launcher/include/project/project.hpp
+)
 
 
 
@@ -59,5 +64,5 @@ add_dependencies(gill copy_assets)
 
 
 
-target_link_libraries(gill PRIVATE glad engine magic_enum::magic_enum)
+target_link_libraries(gill PRIVATE glad engine magic_enum::magic_enum nfd launcher)
 

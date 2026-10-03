@@ -1,7 +1,9 @@
 #pragma once
 #include <memory>
+#include <optional>
 #include <string>
 #include "mathpp.hpp"
+#include "../../launcher/include/project/project.hpp"
 
 
 class Engine;
@@ -15,7 +17,7 @@ class App {
 public:
     App();
     ~App();
-    void Init(unsigned int width, unsigned int height);
+    bool Init(unsigned int width, unsigned int height);
     void Run();
     void Shutdown();
 
@@ -23,6 +25,7 @@ private:
     float m_width{};
     float m_height{};
     std::string title = "Gill";
+    std::optional<Project> m_project;
     std::unique_ptr<Scene> up_scene;
     std::unique_ptr<Engine> up_engine;
     std::unique_ptr<Editor> up_editor;

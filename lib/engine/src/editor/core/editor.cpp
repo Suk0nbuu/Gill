@@ -65,7 +65,6 @@ void Editor::Init(float Width, float Height,Window* window,Scene* scene,Input* i
 
     v_handles.push_back(std::make_pair(&p_input->mouseDown,handle1));
     v_handles.push_back(std::make_pair(&p_input->mouseUp,handle2));
-    TestFunction(scene,meshSystem,transformSystem,armatureSystem);
 }
 
 void Editor::Run(float deltaT) {

@@ -6,10 +6,19 @@
 #include "editor/core/editor.hpp"
 #include "scene/scene.hpp"
 #include "core/input/input.hpp"
+#include "../../launcher/include/core/launcher.hpp"
+#include "nfd.h"
 
-void App::Init(unsigned int width, unsigned int height) {
+bool App::Init(unsigned int width, unsigned int height) {
     int actualWidth, actualHeight;
+    NFD_Init();
     up_window = std::make_unique<Window>(width,height,title);
+
+    Launcher launcher;
+    m_project = launcher.Run(*up_window);
+    if (!m_project) return false;
+    glfwSetWindowTitle(up_window->GetWindow(), (title + " - " + m_project->GetName()).c_str());
+
     up_window->GetFrameBufferSize(&actualWidth, &actualHeight);
 
     m_width = static_cast<float>(actualWidth);
@@ -24,6 +33,7 @@ void App::Init(unsigned int width, unsigned int height) {
     up_input = std::make_unique<Input>(up_window.get());
     up_engine->Init(static_cast<int>(m_width),static_cast<int>(m_height),up_camera.get(),up_scene.get());
     up_editor->Init(m_width,m_height,up_window.get(),up_scene.get(),up_input.get(),m_projection,up_camera.get(),up_engine->GetTransformSystem(),up_engine->GetHierarchy(),up_engine->GetMeshSystem(),up_engine->GetMaterialSystem(),up_engine->GetRenderer(),up_engine->GetArmatureSystem());
+    return true;
 }
 
 
@@ -47,6 +57,7 @@ void App::Shutdown() {
     up_editor->ShutDown();
     up_engine->Shutdown();
     glfwTerminate();
+    NFD_Quit();
 }
 
 App::App() = default;

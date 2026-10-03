@@ -82,6 +82,6 @@ add_library(engine STATIC
 
 )
 
-target_link_libraries(engine PUBLIC glad glfw mathpp imgui stb_image magic_enum::magic_enum cgltf)
+target_link_libraries(engine PUBLIC glad glfw mathpp imgui stb_image magic_enum::magic_enum cgltf nfd)
 target_include_directories(engine PUBLIC include)
 target_compile_definitions(engine PUBLIC GLFW_INCLUDE_NONE)
