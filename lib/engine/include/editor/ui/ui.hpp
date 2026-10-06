@@ -89,7 +89,7 @@ public:
 
 private:
     void DrawDockspace(Scene* scene);
-    void AdjustLastOp(Scene* scene);
+    void RegeneratePrimitiveMesh(Scene* scene,Entity entity);
     EditorContext m_ctx;
     PrimitiveData m_primitiveData;
     std::vector<std::unique_ptr<EditorPanel>> v_panels;

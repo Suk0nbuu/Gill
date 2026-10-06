@@ -25,13 +25,13 @@ private:
     float m_width{};
     float m_height{};
     std::string title = "Gill";
+    std::unique_ptr<Window> up_window;
     std::optional<Project> m_project;
-    std::unique_ptr<Scene> up_scene;
+    std::unique_ptr<Input>  up_input;
+    std::unique_ptr<Camera> up_camera;
+    std::unique_ptr<Scene>  up_scene;
     std::unique_ptr<Engine> up_engine;
     std::unique_ptr<Editor> up_editor;
-    std::unique_ptr<Camera> up_camera;
-    std::unique_ptr<Window> up_window;
-    std::unique_ptr<Input> up_input;
     mathpp::mat4f m_projection;
 
     float m_aspect;

@@ -28,8 +28,9 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(magic_enum)
 
 
-
-
+FetchContent_Declare(json
+        URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz)
+FetchContent_MakeAvailable(json)
 
 
 add_subdirectory(extern/glad)
@@ -64,5 +65,5 @@ add_dependencies(gill copy_assets)
 
 
 
-target_link_libraries(gill PRIVATE glad engine magic_enum::magic_enum nfd launcher)
+target_link_libraries(gill PRIVATE glad engine magic_enum::magic_enum nfd nlohmann_json::nlohmann_json launcher)
 

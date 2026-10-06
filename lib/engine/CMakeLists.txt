@@ -78,10 +78,13 @@ add_library(engine STATIC
         include/component/armature.hpp
         include/render/shader/shaderVariant.hpp
         src/render/shader/shaderVariant.cpp
+        include/component/primitive.hpp
+        include/scene/sceneSerializer.hpp
+        src/scene/sceneSerializer.cpp
 
 
 )
 
-target_link_libraries(engine PUBLIC glad glfw mathpp imgui stb_image magic_enum::magic_enum cgltf nfd)
+target_link_libraries(engine PUBLIC glad glfw mathpp imgui stb_image magic_enum::magic_enum cgltf nfd nlohmann_json::nlohmann_json)
 target_include_directories(engine PUBLIC include)
 target_compile_definitions(engine PUBLIC GLFW_INCLUDE_NONE)

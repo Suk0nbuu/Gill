@@ -50,16 +50,20 @@ void UIManager::EndFrame() {
 
 
 void UIManager::AddPrimitive(Scene* scene, PrimitiveType type) {
-   AssetHandle meshID = m_ctx.p_meshSystem->AddPrimitive(type,m_primitiveData.rings,m_primitiveData.segments,m_primitiveData.radius,m_primitiveData.height);
-   Entity entity = scene->CreateEntity();
-    comp::MeshComponent meshComp;
-    comp::MaterialComponent matComp;
+    comp::PrimitiveComponent prim;
+    prim.type = type;
+    prim.rings = m_primitiveData.rings;
+    prim.segments = m_primitiveData.segments;
+    prim.radius = m_primitiveData.radius;
+    prim.height = m_primitiveData.height;
 
-    meshComp.meshID = meshID;
-    m_primitiveData.entity = entity;
-    m_primitiveData.type = type;
+    comp::MeshComponent meshComp;
+    meshComp.meshID = m_ctx.p_meshSystem->AddPrimitive(prim.type, prim.rings, prim.segments, prim.radius, prim.height);
+
+    Entity entity = scene->CreateEntity();
     m_ctx.p_transformSystem->AddTransform(entity);
-    scene->InsertComponent(entity,meshComp);
+    scene->InsertComponent(entity, meshComp);
+    scene->InsertComponent(entity, prim);
 }
 
 void UIManager::RenderAddMenu(Scene* scene) {
@@ -228,39 +232,34 @@ void HierarchyPanel::DrawEntityNode(Entity entity) {
 
 
 
-void UIManager::RenderPrimitiveOp(Scene *scene) {
-    if (m_primitiveData.entity == UINT32_MAX && m_ctx.p_selectionManager->GetActiveSelected() == m_primitiveData.entity)
-    {return;}
-    if (m_primitiveData.type != PrimitiveType::Cube && m_primitiveData.type != PrimitiveType::Plane) {
-        ImGui::Begin("Primitive Properties");
-        if (ImGui::DragInt("Segments",&m_primitiveData.segments)) {
-            AdjustLastOp(scene);
-        }
-        if (m_primitiveData.type == PrimitiveType::Sphere) {
-            if (ImGui::DragInt("Rings",&m_primitiveData.rings)) {
-                AdjustLastOp(scene);
-            }
-        }
-        if (m_primitiveData.type != PrimitiveType::Sphere) {
-            if (ImGui::DragFloat("Height",&m_primitiveData.height)) {
-                AdjustLastOp(scene);
-            }
-        }
-        if (ImGui::DragFloat("Radius",&m_primitiveData.radius)) {
-            AdjustLastOp(scene);
-        }
-        ImGui::End();
-    }
+void UIManager::RenderPrimitiveOp(Scene* scene) {
+    auto selected = m_ctx.p_selectionManager->GetActiveSelected();
+    if (!selected.has_value()) return;
+    Entity entity = *selected;
+
+    comp::PrimitiveComponent* prim = scene->TryGetComponent<comp::PrimitiveComponent>(entity);
+    if (prim == nullptr) return;
+    if (prim->type == PrimitiveType::Cube || prim->type == PrimitiveType::Plane) return;
+
+    bool changed = false;
+    ImGui::Begin("Primitive Properties");
+    changed |= ImGui::DragInt("Segments", &prim->segments, 1, 3, 128);
+    if (prim->type == PrimitiveType::Sphere)
+        changed |= ImGui::DragInt("Rings", &prim->rings, 1, 2, 128);
+    else
+        changed |= ImGui::DragFloat("Height", &prim->height, 0.01f, 0.01f, 100.0f);
+    changed |= ImGui::DragFloat("Radius", &prim->radius, 0.01f, 0.01f, 100.0f);
+    ImGui::End();
+
+    if (changed) RegeneratePrimitiveMesh(scene, entity);
 }
 
-void UIManager::AdjustLastOp(Scene *scene) {
-    comp::MeshComponent* meshComp = scene->TryGetComponent<comp::MeshComponent>(m_primitiveData.entity);
-    if (meshComp == nullptr) return;
-    if (meshComp->meshID != AssetHandle{}) {
-        m_ctx.p_meshSystem->RemoveMesh(meshComp->meshID);
-    }
-
-    meshComp->meshID=m_ctx.p_meshSystem->AddPrimitive(m_primitiveData.type,m_primitiveData.rings,m_primitiveData.segments,m_primitiveData.radius,m_primitiveData.height);
+void UIManager::RegeneratePrimitiveMesh(Scene* scene, Entity entity) {
+    const comp::PrimitiveComponent* prim = scene->TryGetComponent<comp::PrimitiveComponent>(entity);
+    comp::MeshComponent* meshComp = scene->TryGetComponent<comp::MeshComponent>(entity);
+    if (prim == nullptr || meshComp == nullptr) return;
+    if (meshComp->meshID != AssetHandle{}) m_ctx.p_meshSystem->RemoveMesh(meshComp->meshID);
+    meshComp->meshID = m_ctx.p_meshSystem->AddPrimitive(prim->type, prim->rings, prim->segments, prim->radius, prim->height);
 }
 
 void UIManager::DrawDockspace(Scene *scene) {

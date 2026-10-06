@@ -10,6 +10,7 @@
 #include <optional>
 #include "render/mesh/mesh.hpp"
 #include "component/armature.hpp"
+#include "component/primitive.hpp"
 #include <unordered_set>
 
 class Scene {
@@ -37,6 +38,7 @@ public:
 
     template<typename T>
    const T* TryGetComponent(Entity entity) const;
+
 
 
 
@@ -84,6 +86,7 @@ T* TryGetComponent(Entity entity);
     SparseSet<comp::SunlightComponent> m_sunlights;
     SparseSet<comp::MaterialComponent> m_materials;
     SparseSet<comp::ArmatureComponent> m_armatures;
+    SparseSet<comp::PrimitiveComponent> m_primitives;
 };
 
 
@@ -112,6 +115,15 @@ T* TryGetComponent(Entity entity);
     template<>
     inline const comp::MaterialComponent& Scene::GetComponent<comp::MaterialComponent>(Entity entity) const {
         return m_materials.Get(entity);
+    }
+
+    template<>
+    inline const comp::PrimitiveComponent& Scene::GetComponent<comp::PrimitiveComponent>(Entity entity) const {
+        return m_primitives.Get(entity);
+    }
+    template<>
+    inline comp::PrimitiveComponent& Scene::GetComponent<comp::PrimitiveComponent>(Entity entity) {
+        return  m_primitives.Get(entity);
     }
 
     template<>
@@ -172,6 +184,20 @@ T* TryGetComponent(Entity entity);
         return nullptr;
     }
     template<>
+    inline comp::PrimitiveComponent* Scene::TryGetComponent<comp::PrimitiveComponent>(Entity entity) {
+        if (m_primitives.Has(entity)) {
+            return &m_primitives.Get(entity);
+        }
+        return  nullptr;
+    }
+    template<>
+    inline const comp::PrimitiveComponent* Scene::TryGetComponent<comp::PrimitiveComponent>(Entity entity) const {
+        if (m_primitives.Has(entity)) {
+            return &m_primitives.Get(entity);
+        }
+        return nullptr;
+    }
+    template<>
     inline void Scene::InsertComponent<comp::MeshComponent>(Entity entity,const comp::MeshComponent& component) {
         m_meshes.Insert(entity, component);
     }
@@ -182,6 +208,14 @@ T* TryGetComponent(Entity entity);
     template<>
     inline void Scene::InsertComponent<comp::ArmatureComponent>(Entity entity, const comp::ArmatureComponent& component) {
         m_armatures.Insert(entity,component);
+    }
+    template<>
+    inline void Scene::InsertComponent<comp::PrimitiveComponent>(Entity entity, const comp::PrimitiveComponent& component) {
+        m_primitives.Insert(entity,component);
+    }
+    template<>
+    inline void Scene::RemoveComponent<comp::PrimitiveComponent>(Entity entity) {
+        m_primitives.Remove(entity);
     }
     template<>
     inline void Scene::RemoveComponent<comp::ArmatureComponent>(Entity entity) {
