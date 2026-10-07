@@ -68,6 +68,8 @@ bool ReadFloats(const json& obj, const char* key, float (&out)[N], std::string& 
     if (local.parent < NO_PARENT)        { error = "parent must be >= -1"; return false; }
     if (local.parent == local.id) { error = "entity cannot be its own parent"; return false; }
 
+        if (entity.contains("name")) { Read(entity, "name", local.name, error); }
+
     // transform
     if (!entity.contains("transform") || !entity["transform"].is_object()) {
         error = "missing or invalid 'transform' object";
@@ -202,68 +204,129 @@ bool SceneSerializer::Parse(const std::string& text, std::vector<Entry>& out, st
 }
 
 
-void SceneSerializer::Apply(const std::vector<Entry> &entries) {
+bool SceneSerializer::Apply(const std::vector<Entry> &entries,std::string& error) {
     std::unordered_map<int, Entity> idToEntity;
+    idToEntity.reserve(entries.size());
     for (size_t i = 0; i < entries.size(); ++i) {
         const Entry& e = entries[i];
         Entity ent = p_scene->CreateEntity();
         idToEntity.emplace(e.id, ent);
+        p_transformSystem->AddTransform(ent);
+        p_transformSystem->SetPosition(ent,e.pos);
+        p_transformSystem->SetRotation(ent,e.rot);
+        p_transformSystem->SetScale(ent,e.scale);
+
+
+        comp::MeshComponent meshComp;
+
+        if (!e.name.empty()) {
+            comp::NameComponent nameComp;
+            nameComp.name = e.name;
+            p_scene->InsertComponent(ent, nameComp);
+        }
+
+
+
+
+        meshComp.meshID = p_meshSystem->AddPrimitive(e.prim.type,e.prim.rings,e.prim.segments,e.prim.radius,e.prim.height);
+        p_scene->InsertComponent(ent,meshComp);
+        p_scene->InsertComponent(ent,e.prim);
     }
 
     for (size_t i = 0; i < entries.size(); ++i) {
         const Entry& e = entries[i];
         if (e.parent == NO_PARENT) continue;
-        p_transformSystem->AddTransform(idToEntity[e.id]);
-        p_transformSystem->SetPosition(idToEntity[e.id],e.pos);
-        p_transformSystem->SetRotation(idToEntity[e.id],e.rot);
-        p_transformSystem->SetScale(idToEntity[e.id],e.scale);
-
-        comp::PrimitiveComponent primComp;
-        comp::MeshComponent meshComp;
-
-        primComp.height = e.prim.height;
-        primComp.radius = e.prim.radius;
-        primComp.rings = e.prim.rings;
-        primComp.segments = e.prim.segments;
-        primComp.type = e.prim.type;
-
-        meshComp.meshID = p_meshSystem->AddPrimitive(primComp.type,primComp.rings,primComp.segments,primComp.radius,primComp.height);
-        p_scene->InsertComponent(idToEntity[e.id],meshComp);
-        p_scene->InsertComponent(idToEntity[e.id],primComp);
-        p_hierarchy->SetParent(idToEntity[e.id], idToEntity[e.parent]);
+        const Entity child = idToEntity.at(e.id);
+        p_hierarchy->SetParent(child, idToEntity.at(e.parent));
+        p_transformSystem->MarkDirty(child);
     }
+    return  true;
 }
 
 
-bool SceneSerializer::Load(const std::filesystem::path &path, std::string &error) {
-    std::vector<Entry> entries;
-    std::ifstream ifs(path);
+bool SceneSerializer::Load(const std::filesystem::path& path, std::string& error) {
+    std::ifstream ifs(path, std::ios::binary);
     if (!ifs.is_open()) {
         error = "failed to open " + path.string();
         return false;
     }
-    const json& root = json::parse(ifs);
-    auto str = root.dump();
+    std::string text((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
 
-    if (!Parse(str,entries,error)) {
-        return false;
-    }
-    Apply(entries);
-    return true;
+    std::vector<Entry> entries;
+    if (!Parse(text, entries, error)) return false;
+    return Apply(entries, error);
 }
 
-bool SceneSerializer::Save(const std::filesystem::path &path, std::string &error, int &skipped) const {
-    std::ofstream ofs(path);
-    const json root;
+bool SceneSerializer::Save(const std::filesystem::path& path, std::string& error, int& skipped) const {
+    skipped = 0;
+
+    // pass 1: pick which entities are saved and give each a sequential file id
+    std::unordered_map<Entity, int> entityToId;
+    std::vector<Entity> saved;
+    for (Entity e : p_scene->GetLivingEntities()) {
+        if (!p_scene->TryGetComponent<comp::PrimitiveComponent>(e)) { ++skipped; continue; }
+        entityToId.emplace(e, static_cast<int>(saved.size()));
+        saved.push_back(e);
+    }
+
+    // pass 2: build the json
+    json root;
     root["version"] = SUPPORTED_VERSION;
+    json entities = json::array();
+    for (Entity e : saved) {
+        json item;
+        item["id"] = entityToId.at(e);
 
+        int parentId = NO_PARENT;
+        uint32_t temp;
+        if (p_hierarchy->HasParent(e)) {
+            temp = p_hierarchy->TryGetParent(e).value();
+            if (entityToId.contains(temp)) {
+                parentId = entityToId.at(temp);
+            }
+        }
+        // look up e's parent in Hierarchy; if it has one AND it's in entityToId,
+        // parentId = entityToId.at(parent). Otherwise it stays -1.
+        item["parent"] = parentId;
+        const comp::TransformComponent& tComp = p_transformSystem->GetTransform(e);
+        const comp::PrimitiveComponent* pComp = p_scene->TryGetComponent<comp::PrimitiveComponent>(e);
+        const comp::NameComponent* nComp = p_scene->TryGetComponent<comp::NameComponent>(e);
+        item["transform"] = {{"pos",{tComp.position.x,tComp.position.y,tComp.position.z}},{"rot",{tComp.rotation.w,tComp.rotation.x,tComp.rotation.y,tComp.rotation.z}},{"scale",{tComp.scale.x,tComp.scale.y,tComp.scale.z}}};
+        if (pComp) {
+            item["primitive"] = {{"type",std::string(magic_enum::enum_name(pComp->type))},{"rings",pComp->rings},{"segments",pComp->segments},{"height",pComp->height},{"radius",pComp->radius}};
+        }
+        if (nComp) {
+            item["name"] = nComp->name;
+        }
 
-    if (!ofs.is_open()) {
-        error = "failed to open " + path.string();
+        entities.push_back(std::move(item));
     }
-    std::vector<Entity> entities = p_scene->GetLivingEntities();
-    for (size_t i = 0; i < entities.size(); ++i) {
-        const Entity& e = entities[i];
+    root["entities"] = std::move(entities);
 
+    const std::string text = root.dump(2);
+
+    std::filesystem::path tmp = path;
+    tmp += ".tmp";
+    {
+        std::ofstream ofs(tmp, std::ios::binary | std::ios::trunc);
+        if (!ofs) { error = "failed to open " + tmp.string(); return false; }
+        ofs << text;
+        ofs.flush();
+        if (!ofs.good()) {
+            ofs.close();
+            std::error_code rm;
+            std::filesystem::remove(tmp, rm);
+            error = "failed to write " + tmp.string();
+            return false;
+        }
+    }   // stream closes here, before the rename
+
+    std::error_code ec;
+    std::filesystem::rename(tmp, path, ec);
+    if (ec) {
+        std::filesystem::remove(tmp, ec);
+        error = "failed to replace " + path.string();
+        return false;
     }
+    return true;
 }

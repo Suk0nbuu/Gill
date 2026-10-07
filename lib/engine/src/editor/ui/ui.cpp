@@ -191,9 +191,17 @@ void HierarchyPanel::DrawEntityNode(Entity entity) {
     if (m_ctx.p_selectionManager->GetActiveSelected().has_value() && m_ctx.p_selectionManager->GetActiveSelected().value() == entity) {
         flags |= ImGuiTreeNodeFlags_Selected;
     }
-    std::string title = "Entity " + std::to_string(entity);
+    std::string title;
+    if (auto* n = m_ctx.p_scene->TryGetComponent<comp::NameComponent>(entity); n && !n->name.empty())
+        {title = n->name;}
+    else
+        {title = "Entity " + std::to_string(entity);}
+
     std::vector children = m_ctx.p_hierarchy->GetChild(entity);
-    bool isNodeOpen = ImGui::TreeNodeEx((void*)(intptr_t)entity, flags, "%s", title.c_str());
+
+    const bool renaming = m_renaming && *m_renaming == entity;
+    const char* label = renaming ? "##node" : title.c_str();
+    bool isNodeOpen = ImGui::TreeNodeEx((void*)(intptr_t)entity, flags, "%s", label);
     if (ImGui::IsItemClicked()) {
         if (m_ctx.p_input->IsShiftHeld()) {
             m_ctx.p_selectionManager->ToggleSelection(entity);
@@ -218,7 +226,37 @@ void HierarchyPanel::DrawEntityNode(Entity entity) {
         }
         ImGui::EndDragDropTarget();
     }
+    if (ImGui::BeginPopupContextItem("##nodeContext")) {
+        if (ImGui::IsWindowAppearing()) {
+            // right-click doesn't select by default, so select it here
+            m_ctx.p_selectionManager->SetSelected(entity);
+        }
+        if (ImGui::MenuItem("Rename", "F2")) {
+            m_renaming = entity;
+            std::snprintf(m_renameBuf, sizeof(m_renameBuf), "%s", title.c_str());
+            m_focusRename = true;
+        }
+        // later: Delete, Duplicate, Create Child
+        ImGui::EndPopup();
+    }
+    if (renaming) {
+        ImGui::SameLine();
+        ImGui::PushID((int)entity);
+        if (m_focusRename) { ImGui::SetKeyboardFocusHere(); m_focusRename = false; }
 
+        bool enter = ImGui::InputText("##rename", m_renameBuf, sizeof(m_renameBuf),
+                         ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_AutoSelectAll);
+        if (enter) {
+            CommitRename(entity);
+            m_renaming.reset();
+        } else if (ImGui::IsKeyPressed(ImGuiKey_Escape)) {
+            m_renaming.reset();
+        } else if (ImGui::IsItemDeactivated()) {
+            CommitRename(entity);
+            m_renaming.reset();
+        }
+        ImGui::PopID();
+    }
     if (isNodeOpen) {
 
         for (uint32_t i = 0; i < children.size(); i++) {
@@ -230,6 +268,19 @@ void HierarchyPanel::DrawEntityNode(Entity entity) {
 }
 
 
+void HierarchyPanel::CommitRename(Entity entity) {
+    std::string name = m_renameBuf;
+    // trim leading/trailing spaces
+    name.erase(0, name.find_first_not_of(' '));
+    name.erase(name.find_last_not_of(' ') + 1);
+    if (name.empty()) return;                       // keep the old name
+
+    if (auto* n = m_ctx.p_scene->TryGetComponent<comp::NameComponent>(entity))
+        n->name = std::move(name);
+    else
+        m_ctx.p_scene->InsertComponent(entity, comp::NameComponent{ std::move(name) });
+    // set the dirty flag here
+}
 
 
 void UIManager::RenderPrimitiveOp(Scene* scene) {

@@ -53,7 +53,11 @@ class HierarchyPanel : public EditorPanel {
     void Draw() override;
 private:
     void DrawEntityNode(Entity entity);
+    void CommitRename(Entity entity);
     EditorContext m_ctx;
+    std::optional<Entity> m_renaming;
+    char m_renameBuf[128] = {};
+    bool m_focusRename = false;
 };
 
 class GizmoPanel : public EditorPanel {

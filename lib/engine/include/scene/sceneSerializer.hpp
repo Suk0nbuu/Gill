@@ -12,7 +12,15 @@ class TransformSystem;
 class Hierarchy;
 class MeshSystem;
 
-struct Entry { int id; int parent; mathpp::vec3f pos; mathpp::quatf rot; mathpp::vec3f scale; comp::PrimitiveComponent prim; };
+struct Entry {
+    int id;
+    int parent;
+    std::string name;
+    mathpp::vec3f pos;
+    mathpp::quatf rot;
+    mathpp::vec3f scale;
+    comp::PrimitiveComponent prim;
+};
 
 
 
@@ -27,7 +35,7 @@ public:
 private:
 
     static bool Parse(const std::string& text, std::vector<Entry>& out, std::string& error);
-    void Apply(const std::vector<Entry>& entries);
+    bool Apply(const std::vector<Entry>& entries,std::string& error);
 
 
 

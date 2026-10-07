@@ -7,6 +7,7 @@
 #include "core/set/sparseset.hpp"
 #include "core/system/asset/asset.hpp"
 #include "component/material.hpp"
+#include "component/name.hpp"
 #include <optional>
 #include "render/mesh/mesh.hpp"
 #include "component/armature.hpp"
@@ -87,10 +88,19 @@ T* TryGetComponent(Entity entity);
     SparseSet<comp::MaterialComponent> m_materials;
     SparseSet<comp::ArmatureComponent> m_armatures;
     SparseSet<comp::PrimitiveComponent> m_primitives;
+    SparseSet<comp::NameComponent> m_names;
 };
 
 
 
+    template<>
+    inline comp::NameComponent& Scene::GetComponent<comp::NameComponent>(Entity entity) {
+        return m_names.Get(entity);
+    }
+    template<>
+    inline const comp::NameComponent& Scene::GetComponent<comp::NameComponent>(Entity entity) const {
+        return m_names.Get(entity);
+    }
 
     template<>
     inline comp::SunlightComponent& Scene::GetComponent<comp::SunlightComponent>(Entity entity) {
@@ -197,6 +207,20 @@ T* TryGetComponent(Entity entity);
         }
         return nullptr;
     }
+    template <>
+    inline const comp::NameComponent* Scene::TryGetComponent<comp::NameComponent>(Entity entity)const {
+        if (m_names.Has(entity)) {
+            return &m_names.Get(entity);
+        }
+        return nullptr;
+    }
+    template<>
+    inline comp::NameComponent* Scene::TryGetComponent<comp::NameComponent>(Entity entity) {
+        if (m_names.Has(entity)) {
+            return &m_names.Get(entity);
+        }
+        return nullptr;
+    }
     template<>
     inline void Scene::InsertComponent<comp::MeshComponent>(Entity entity,const comp::MeshComponent& component) {
         m_meshes.Insert(entity, component);
@@ -212,6 +236,14 @@ T* TryGetComponent(Entity entity);
     template<>
     inline void Scene::InsertComponent<comp::PrimitiveComponent>(Entity entity, const comp::PrimitiveComponent& component) {
         m_primitives.Insert(entity,component);
+    }
+    template<>
+    inline void Scene::InsertComponent<comp::NameComponent>(Entity entity, const comp::NameComponent& component) {
+        m_names.Insert(entity,component);
+    }
+    template<>
+    inline void Scene::RemoveComponent<comp::NameComponent>(Entity entity) {
+        m_meshes.Remove(entity);
     }
     template<>
     inline void Scene::RemoveComponent<comp::PrimitiveComponent>(Entity entity) {

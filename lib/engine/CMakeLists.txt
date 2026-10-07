@@ -81,6 +81,7 @@ add_library(engine STATIC
         include/component/primitive.hpp
         include/scene/sceneSerializer.hpp
         src/scene/sceneSerializer.cpp
+        include/component/name.hpp
 
 
 )

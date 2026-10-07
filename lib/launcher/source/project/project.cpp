@@ -41,9 +41,9 @@ std::optional<Project> Project::Create(const fs::path& parent, const std::string
     project.m_name = name;
     project.m_root = fs::weakly_canonical(root, ec);
 
-    // Base project content: a placeholder scene. Replace once scene saving exists.
+
     std::ofstream scene(root / "Scenes" / "Main.gscene");
-    scene << "gscene=1\n";
+    scene << ;
     scene.close();
 
     if (ec || !scene || !project.Save()) {
