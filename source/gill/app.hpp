@@ -25,6 +25,7 @@ private:
     float m_width{};
     float m_height{};
     std::string title = "Gill";
+
     std::unique_ptr<Window> up_window;
     std::optional<Project> m_project;
     std::unique_ptr<Input>  up_input;
@@ -34,6 +35,11 @@ private:
     std::unique_ptr<Editor> up_editor;
     mathpp::mat4f m_projection;
 
+    bool LoadScene(std::string& error);
+    void SaveScene();
+    bool m_dirty = false;
+    std::string m_errorPopup;
+    bool m_closeRequested = false;
     float m_aspect;
     float m_deltaTime;
     float m_lastFrame;

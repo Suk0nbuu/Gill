@@ -42,8 +42,8 @@ std::optional<Project> Project::Create(const fs::path& parent, const std::string
     project.m_root = fs::weakly_canonical(root, ec);
 
 
-    std::ofstream scene(root / "Scenes" / "Main.gscene");
-    scene << ;
+    std::ofstream scene(root / "Scenes" / "Main.json");
+    scene << "{\"version\":1,\"entities\":[]}\n";
     scene.close();
 
     if (ec || !scene || !project.Save()) {

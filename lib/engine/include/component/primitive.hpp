@@ -1,4 +1,11 @@
 #pragma once
+enum class PrimitiveType{
+    Cube,
+    Plane,
+    Sphere,
+    Cylinder,
+    Cone
+};
 namespace comp {
     struct PrimitiveComponent {
         PrimitiveType type = PrimitiveType::Cube;

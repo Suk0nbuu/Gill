@@ -8,6 +8,7 @@
 #include "core/input/input.hpp"
 #include "../../launcher/include/core/launcher.hpp"
 #include "nfd.h"
+#include "../../engine/include/scene/sceneSerializer.hpp"
 
 bool App::Init(unsigned int width, unsigned int height) {
     int actualWidth, actualHeight;
@@ -33,12 +34,16 @@ bool App::Init(unsigned int width, unsigned int height) {
     up_input = std::make_unique<Input>(up_window.get());
     up_engine->Init(static_cast<int>(m_width),static_cast<int>(m_height),up_camera.get(),up_scene.get());
     up_editor->Init(m_width,m_height,up_window.get(),up_scene.get(),up_input.get(),m_projection,up_camera.get(),up_engine->GetTransformSystem(),up_engine->GetHierarchy(),up_engine->GetMeshSystem(),up_engine->GetMaterialSystem(),up_engine->GetRenderer(),up_engine->GetArmatureSystem());
+    std::string err;
+    if (!LoadScene(err)) { std::fprintf(stderr, "Scene load failed: %s\n", err.c_str()); return false; }
+    up_editor->saveRequested.Subscribe([this]{ SaveScene(); });
+    up_editor->closeRequested.Subscribe([this]{ m_closeRequested = true; });   //
     return true;
 }
 
 
 void App::Run() {
-    while (!up_window->ShouldClose()) {
+    while (!up_window->ShouldClose() && ! m_closeRequested) {
         float currentTime = glfwGetTime();
         m_deltaTime = currentTime - m_lastFrame;
         m_lastFrame = currentTime;
@@ -48,6 +53,7 @@ void App::Run() {
         up_camera->Update(up_input.get(),m_deltaTime,{0.0f,0.0f,0.0f},false);
         up_engine->Run();
         up_editor->Run(m_deltaTime);
+        std::string err;
         up_input->ClearFrameState();
         up_window->SwapBuffers();
     }
@@ -62,3 +68,17 @@ void App::Shutdown() {
 
 App::App() = default;
 App::~App() = default;
+
+bool App::LoadScene(std::string& error) {
+    SceneSerializer ser(up_scene.get(), up_engine->GetTransformSystem(),
+                        up_engine->GetHierarchy(), up_engine->GetMeshSystem());
+    return ser.Load(m_project->ScenePath(), error);
+}
+
+void App::SaveScene() {
+    SceneSerializer ser(up_scene.get(), up_engine->GetTransformSystem(),
+                        up_engine->GetHierarchy(), up_engine->GetMeshSystem());
+    std::string err; int skipped = 0;
+    if (!ser.Save(m_project->ScenePath(), err, skipped)) { m_errorPopup = "Save failed: " + err; return; }
+    m_dirty = false;
+}

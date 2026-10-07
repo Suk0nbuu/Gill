@@ -8,6 +8,7 @@
 #include "uiComponent/mesh.hpp"
 #include <vector>
 #include "scene/scene.hpp"
+#include "core/component/event/event.hpp"
 
 
 
@@ -90,12 +91,17 @@ public:
     void EndFrame();
     bool WantCaptureMouse();
     void Shutdown();
+    void SetFileEvents(EventDelegate<>* save, EventDelegate<>* close);
 
 private:
     void DrawDockspace(Scene* scene);
     void RegeneratePrimitiveMesh(Scene* scene,Entity entity);
+    void ApplyEditorTheme();
     EditorContext m_ctx;
     PrimitiveData m_primitiveData;
+    EventDelegate<>* p_saveRequested = nullptr;
+    EventDelegate<>* p_closeRequested = nullptr;
+
     std::vector<std::unique_ptr<EditorPanel>> v_panels;
     void AddPrimitive(Scene* scene, PrimitiveType type);
     void AddSunlight(Scene* scene);

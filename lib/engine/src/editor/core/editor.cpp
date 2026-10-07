@@ -48,6 +48,7 @@ void Editor::Init(float Width, float Height,Window* window,Scene* scene,Input* i
     up_gridRenderer->Init(100);
     up_gizmo->Init(m_width,m_height,&m_gizmoData,p_transformSystem);
     up_ui->Init(window,p_scene,p_transformSystem,p_hierarchy,&m_gizmoData,p_renderer,p_meshSystem,p_materialSystem,up_editorInputMap.get(),up_selectionManager.get(),p_input);
+    up_ui->SetFileEvents(&saveRequested, &closeRequested);
     up_selector->Init(m_width,m_height);
     up_outline->Init(meshSystem,transformSystem,up_selectionManager.get());
     up_transformController->Init(m_width,m_height,&m_gizmoData,p_transformSystem,up_selectionManager.get(),hierarchy);

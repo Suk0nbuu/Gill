@@ -19,6 +19,7 @@ void UIManager::Init(Window* window,Scene* scene,TransformSystem* transformSyste
     p_io_ptr->ConfigFlags |= ImGuiConfigFlags_DockingEnable; //Enable Docking
     p_io_ptr->ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
     p_io_ptr->ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
+    ApplyEditorTheme();
     m_ctx.p_input = input;
     m_ctx.p_hierarchy = hierarchy;
     m_ctx.p_editorInputMap = editorInputMap;
@@ -68,6 +69,13 @@ void UIManager::AddPrimitive(Scene* scene, PrimitiveType type) {
 
 void UIManager::RenderAddMenu(Scene* scene) {
     if (ImGui::BeginMainMenuBar()) {
+
+        if (ImGui::BeginMenu("File")) {
+            if (ImGui::MenuItem("Save", "Ctrl+S")) p_saveRequested->Fire();
+            if (ImGui::MenuItem("Close Project"))  p_closeRequested->Fire();
+            ImGui::EndMenu();
+        }
+
         if (ImGui::BeginMenu("Add")) {
             if (ImGui::MenuItem("Cube"))   AddPrimitive(scene, PrimitiveType::Cube);
             if (ImGui::MenuItem("Sphere")) AddPrimitive(scene, PrimitiveType::Sphere);
@@ -336,4 +344,32 @@ void UIManager::RenderViewportMode() {
         if (ImGui::MenuItem("Rendered")) m_ctx.p_renderer->SetViewportMode(ViewportMode::Rendered);
         ImGui::EndPopup();
     }
+}
+
+void UIManager::SetFileEvents(EventDelegate<> *save, EventDelegate<> *close) {
+    p_saveRequested = save;
+    p_closeRequested = close;
+}
+
+
+void UIManager::ApplyEditorTheme() {
+    ImGui::StyleColorsDark();
+    ImGuiStyle& s = ImGui::GetStyle();
+    s.FrameRounding = 4.0f;
+    s.WindowRounding = 4.0f;
+    s.WindowPadding = ImVec2(8, 8);
+    s.FramePadding = ImVec2(6, 4);
+    ImVec4* c = s.Colors;
+    c[ImGuiCol_WindowBg]      = ImVec4(0.11f, 0.11f, 0.12f, 1.0f);
+    c[ImGuiCol_Header]        = ImVec4(0.255f, 0.671f, 0.365f, 1.0f);
+    c[ImGuiCol_HeaderHovered] = ImVec4(00.455f, 0.769f, 0.463f, 1.0f);
+    c[ImGuiCol_HeaderActive] = ImVec4(0.455f, 0.769f, 0.463f, 1.0f);
+    c[ImGuiCol_Button]        = ImVec4(0.20f, 0.20f, 0.22f, 1.0f);
+    c[ImGuiCol_FrameBg]       = ImVec4(0.16f, 0.16f, 0.18f, 1.0f);
+    c[ImGuiCol_TitleBg]       = ImVec4(0.0f, 0.729f, 0.40f, 1.0f);
+    c[ImGuiCol_TitleBgActive] = ImVec4(0.0f, 0.729f, 0.80f, 1.0f);
+    c[ImGuiCol_Tab] = ImVec4(0.0f, 0.729f, 0.40f, 1.0f);
+    c[ImGuiCol_TabSelected]          = ImVec4(0.0f, 0.729f, 0.40f, 1.0f);
+    c[ImGuiCol_TabDimmed]            = ImVec4(0.0f, 0.729f, 0.40f, 1.0f);  // inactive tab in an unfocused dock
+    c[ImGuiCol_TabDimmedSelected]    = ImVec4(0.0f, 0.729f, 0.40f, 1.0f);  // active tab in an unfocused dock
 }

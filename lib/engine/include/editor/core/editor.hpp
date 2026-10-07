@@ -6,7 +6,8 @@
 #include "../include/editor/gizmo/gizmo.hpp"
 #include <GLFW/glfw3.h>
 
-
+#include "editor.hpp"
+#include "GLFW/glfw3native.h"
 
 
 class Outline;
@@ -40,6 +41,8 @@ public:
     void ShutDown();
     ~Editor();
 
+    EventDelegate<> saveRequested;
+    EventDelegate<> closeRequested;
 private:
     float m_width,m_height;
 

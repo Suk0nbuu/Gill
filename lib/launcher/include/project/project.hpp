@@ -34,11 +34,12 @@ public:
 
     const std::string& GetName() const { return m_name; }
     const std::filesystem::path& GetRoot() const { return m_root; }
-
+    std::filesystem::path ScenePath() const { return m_root / "Scenes" / "Main.json"; }
     std::filesystem::path ResolveAsset(const std::string& rel) const;                 // rel -> absolute
     std::optional<std::string> MakeRelative(const std::filesystem::path& abs) const;  // nullopt if outside project
 
 private:
     std::string m_name;
     std::filesystem::path m_root;
+
 };
