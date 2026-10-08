@@ -14,10 +14,10 @@ class Gizmo {
 public:
 
     void Init(unsigned int width,unsigned int height,TransformData* gizmoData,TransformSystem* transformSystem);
-    void Render(Scene* scene,const mathpp::mat4f& view, const mathpp::mat4f& projection,const mathpp::vec3f& gizmoPosition, const mathpp::vec3f& cameraPos,Entity entity);
-    void RenderIDs(const mathpp::mat4f& view, const mathpp::mat4f& projection, const mathpp::vec3f& gizmoPosition, const mathpp::vec3f& cameraPos, Entity entity);
+    void Render(Scene* scene,const mathpp::vec3f& gizmoPosition, const mathpp::vec3f& cameraPos,Entity entity);
+    void RenderIDs(const mathpp::vec3f& gizmoPosition, const mathpp::vec3f& cameraPos, Entity entity);
     void UpdateHighlight(int x, int y,TransformAxis dragAxis,bool isDragging = false);
-    void DrawOriginMarker(const mathpp::mat4f& view, const mathpp::mat4f& projection,const mathpp::vec3f& gizmoPosition);
+    void DrawOriginMarker(const mathpp::vec3f& gizmoPosition);
     TransformAxis ReadAxisAt(int x, int y) const;
     ~Gizmo();
 

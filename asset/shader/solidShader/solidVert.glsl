@@ -3,12 +3,10 @@ layout (location = 0) in vec3 pos;
 layout (location = 1) in vec3 normals;
 
 #ifdef USE_SKINNING
-#include "skinning.glsl"
+#include "../core/skinning.glsl"
 #endif
 
-uniform mat4 model;
-uniform mat4 view;
-uniform mat4 projection;
+#include "../core/camera.glsl"
 uniform mat3 normalMatrix;
 
 out vec3 vNormal;

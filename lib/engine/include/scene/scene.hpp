@@ -2,11 +2,11 @@
 #include <vector>
 #include "component/entity.hpp"
 #include "component/mesh.hpp"
-#include "component/sunlight.hpp"
 #include <functional>
 #include "core/set/sparseset.hpp"
 #include "core/system/asset/asset.hpp"
 #include "component/material.hpp"
+#include  "component/light.hpp"
 #include "component/name.hpp"
 #include <optional>
 #include "render/mesh/mesh.hpp"
@@ -84,7 +84,7 @@ T* TryGetComponent(Entity entity);
     EntityManager m_entityManager;
     AssetManager<Mesh> m_meshManager;
     SparseSet<comp::MeshComponent> m_meshes;
-    SparseSet<comp::SunlightComponent> m_sunlights;
+    SparseSet<comp::LightComponent> m_lights;
     SparseSet<comp::MaterialComponent> m_materials;
     SparseSet<comp::ArmatureComponent> m_armatures;
     SparseSet<comp::PrimitiveComponent> m_primitives;
@@ -103,12 +103,12 @@ T* TryGetComponent(Entity entity);
     }
 
     template<>
-    inline comp::SunlightComponent& Scene::GetComponent<comp::SunlightComponent>(Entity entity) {
-        return m_sunlights.Get(entity);
+    inline comp::LightComponent& Scene::GetComponent<comp::LightComponent>(Entity entity) {
+        return m_lights.Get(entity);
     }
     template<>
-    inline const comp::SunlightComponent& Scene::GetComponent<comp::SunlightComponent>(Entity entity) const {
-        return m_sunlights.Get(entity);
+    inline const comp::LightComponent& Scene::GetComponent<comp::LightComponent>(Entity entity) const {
+        return m_lights.Get(entity);
     }
     template<>
     inline comp::MeshComponent& Scene::GetComponent<comp::MeshComponent>(Entity entity) {
@@ -151,16 +151,16 @@ T* TryGetComponent(Entity entity);
         return nullptr;
     }
     template<>
-    inline comp::SunlightComponent* Scene::TryGetComponent<comp::SunlightComponent>(Entity entity) {
-        if (m_sunlights.Has(entity)) {
-            return &m_sunlights.Get(entity);
+    inline comp::LightComponent* Scene::TryGetComponent<comp::LightComponent>(Entity entity) {
+        if (m_lights.Has(entity)) {
+            return &m_lights.Get(entity);
         }
         return nullptr;
     }
     template<>
-    inline const comp::SunlightComponent* Scene::TryGetComponent<comp::SunlightComponent>(Entity entity) const {
-        if (m_sunlights.Has(entity)) {
-            return &m_sunlights.Get(entity);
+    inline const comp::LightComponent* Scene::TryGetComponent<comp::LightComponent>(Entity entity) const {
+        if (m_lights.Has(entity)) {
+            return &m_lights.Get(entity);
         }
         return nullptr;
     }
@@ -259,12 +259,12 @@ T* TryGetComponent(Entity entity);
         m_meshes.Remove(entity);
     }
     template<>
-    inline void Scene::InsertComponent<comp::SunlightComponent>(Entity entity,const comp::SunlightComponent& component) {
-        m_sunlights.Insert(entity, component);
+    inline void Scene::InsertComponent<comp::LightComponent>(Entity entity,const comp::LightComponent& component) {
+        m_lights.Insert(entity, component);
     }
     template<>
-    inline void Scene::RemoveComponent<comp::SunlightComponent>(Entity entity) {
-        m_sunlights.Remove(entity);
+    inline void Scene::RemoveComponent<comp::LightComponent>(Entity entity) {
+        m_lights.Remove(entity);
     }
     template<>
     inline void Scene::RemoveComponent<comp::MaterialComponent>(Entity entity) {
@@ -279,9 +279,9 @@ T* TryGetComponent(Entity entity);
     }
 
     template<>
-    inline void Scene::ForEach<comp::SunlightComponent>(std::function<void(Entity entity, const comp::SunlightComponent& component)> func) const {
-        for (size_t it = 0; it<m_sunlights.Size();it++) {
-            func(m_sunlights.GetEntity(it), m_sunlights[it]);
+    inline void Scene::ForEach<comp::LightComponent>(std::function<void(Entity entity, const comp::LightComponent& component)> func) const {
+        for (size_t it = 0; it<m_lights.Size();it++) {
+            func(m_lights.GetEntity(it), m_lights[it]);
         }
     }
     template<>

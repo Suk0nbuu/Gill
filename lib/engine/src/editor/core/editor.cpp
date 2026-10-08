@@ -69,7 +69,7 @@ void Editor::Init(float Width, float Height,Window* window,Scene* scene,Input* i
 }
 
 void Editor::Run(float deltaT) {
-    up_gridRenderer->Render(p_camera->GetViewMatrix(),m_proj,p_camera->GetPosition());
+    up_gridRenderer->Render(p_camera->GetPosition());
     mathpp::vec2f pos;
     p_input->GetCursorPos(pos);
     UpdateCursorForModalDrag();
@@ -80,9 +80,9 @@ void Editor::Run(float deltaT) {
         Entity active = up_selectionManager->GetActiveSelected().value();
         mathpp::vec3f medianPos = ComputeMedianPos();
         if (m_gizmoData.visible) {
-            up_gizmo->Render(p_scene,p_camera->GetViewMatrix(),m_proj,medianPos,p_camera->GetPosition(),active);
-            up_gizmo->RenderIDs(p_camera->GetViewMatrix(),m_proj,medianPos,p_camera->GetPosition(),active);
-            up_gizmo->DrawOriginMarker(p_camera->GetViewMatrix(),m_proj,medianPos);
+            up_gizmo->Render(p_scene,medianPos,p_camera->GetPosition(),active);
+            up_gizmo->RenderIDs(medianPos,p_camera->GetPosition(),active);
+            up_gizmo->DrawOriginMarker(medianPos);
         }
         up_gizmoAdapter->OnMouseMove(static_cast<int>(pos.x), static_cast<int>(pos.y));
     }
@@ -107,8 +107,8 @@ void Editor::Run(float deltaT) {
         }
     }
 
-    up_selector->RenderScene(p_scene,p_camera->GetViewMatrix(),m_proj,p_transformSystem,p_meshSystem);
-    up_outline->Draw(p_scene,m_proj,p_camera->GetViewMatrix());
+    up_selector->RenderScene(p_scene,p_transformSystem,p_meshSystem);
+    up_outline->Draw(p_scene);
     up_ui->BeginFrame();
     up_ui->RenderPanels();
     up_ui->RenderPrimitiveOp(p_scene);

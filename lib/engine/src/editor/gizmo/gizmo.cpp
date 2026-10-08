@@ -47,10 +47,9 @@ void Gizmo::Init(unsigned int width,unsigned int height,TransformData* gizmoData
     glBindFramebuffer(GL_FRAMEBUFFER,0);
 }
 
-void Gizmo::Render(Scene* scene,const mathpp::mat4f& view, const mathpp::mat4f& projection,const mathpp::vec3f& gizmoPosition, const mathpp::vec3f& cameraPos,Entity entity) {
+void Gizmo::Render(Scene* scene,const mathpp::vec3f& gizmoPosition, const mathpp::vec3f& cameraPos,Entity entity) {
     up_gizmoShader->Use();
-    up_gizmoShader->setMat4f("view", view);
-    up_gizmoShader->setMat4f("projection", projection);
+
 
 
     glDisable(GL_DEPTH_TEST);
@@ -98,14 +97,13 @@ void Gizmo::DrawAxis(const mathpp::vec3f &gizmoPosition, const mathpp::mat4f &ax
     drawMesh->Draw();
 }
 
-void Gizmo::RenderIDs(const mathpp::mat4f &view, const mathpp::mat4f &projection, const mathpp::vec3f &gizmoPosition, const mathpp::vec3f &cameraPos,Entity entity) {
+void Gizmo::RenderIDs(const mathpp::vec3f &gizmoPosition, const mathpp::vec3f &cameraPos,Entity entity) {
     GLint clearValue = 0;
     glBindFramebuffer(GL_FRAMEBUFFER, m_pickFBO);
     glClearBufferiv(GL_COLOR, 0, &clearValue);
     glClear(GL_DEPTH_BUFFER_BIT);
     up_gizmoShaderID->Use();
-    up_gizmoShaderID->setMat4f("view", view);
-    up_gizmoShaderID->setMat4f("projection", projection);
+
 
     glDisable(GL_DEPTH_TEST);
 
@@ -188,10 +186,8 @@ void Gizmo::ComputeAxisRotations(Entity entity, mathpp::mat4f& outRotX, mathpp::
     }
 }
 
-void Gizmo::DrawOriginMarker(const mathpp::mat4f& view, const mathpp::mat4f& projection, const mathpp::vec3f& gizmoPosition) {
+void Gizmo::DrawOriginMarker(const mathpp::vec3f& gizmoPosition) {
     up_gizmoShader->Use();
-    up_gizmoShader->setMat4f("view", view);
-    up_gizmoShader->setMat4f("projection", projection);
     up_gizmoShader->setVec3f("axisColor", mathpp::vec3f(1.0f, 1.0f, 1.0f));
 
     mathpp::mat4f model = mathpp::translate(mathpp::mat4f(), gizmoPosition);

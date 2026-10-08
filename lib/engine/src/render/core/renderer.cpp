@@ -9,6 +9,9 @@
 #include "component/armature.hpp"
 #include "core/system/material/material.hpp"
 #include "scene/scene.hpp"
+#include "render/data/bindings.hpp"
+#include "render/data/cameraBlock.hpp"
+#include "render/data/uniform.hpp"
 
 void Renderer::Init(TransformSystem* transformSystem,MeshSystem* meshSystem,MaterialSystem* materialSystem,ArmatureSystem* armatureSystem) {
     glEnable(GL_DEPTH_TEST);
@@ -20,7 +23,7 @@ void Renderer::Init(TransformSystem* transformSystem,MeshSystem* meshSystem,Mate
     solidShader = std::make_unique<Shader>("asset/shader/solidShader/solidVert.glsl","asset/shader/solidShader/solidFrag.glsl");
     matCapTexture = std::make_unique<Texture>("asset/texture/core/SolidTex2.png");
     fallBackTexture = std::make_unique<Texture>("asset/texture/core/Debugempty.png");
-
+    up_cameraUBO = std::make_unique<UniformBuffer>(sizeof(CameraBlock), kCameraBinding);
 }
 
 void Renderer::SetViewportMode(ViewportMode mode) {
@@ -32,6 +35,7 @@ ViewportMode Renderer::GetViewportMode() {
 }
 
 void Renderer::renderScene(const Scene* scene, const mathpp::mat4f& view, const mathpp::mat4f& projection,const mathpp::vec3f& viewVec) {
+    UploadCamera(view,projection,viewVec);
     scene->ForEach<comp::MeshComponent>([this, scene, &view, &projection,&viewVec](Entity entity,const comp::MeshComponent& meshComp) {
         DrawEntity(scene, entity, view, meshComp,projection,viewVec);
     });
@@ -54,8 +58,6 @@ void Renderer::DrawEntity(const Scene* scene, Entity entity,
     if (em_viewportMode == ViewportMode::Solid) {
         Shader* shader = m_shaderCache.Get("asset/shader/solidShader/solidVert.glsl", "asset/shader/solidShader/solidFrag.glsl", features);
         shader->Use();
-        shader->setMat4f("view", view);
-        shader->setMat4f("projection", proj);
         mathpp::mat4f model = p_transformSystem->GetWorldTransform(entity);
         shader->setMat4f("model", model);
         mathpp::mat3f normalMat = mathpp::normal_matrix(view * model);
@@ -68,8 +70,6 @@ void Renderer::DrawEntity(const Scene* scene, Entity entity,
         const Shader* baseShader = mat ? p_materialSystem->GetShader(mat->shaderID) : nullptr;
         const Shader* shader = baseShader ? baseShader : solidShader.get();
         shader->Use();
-        shader->setMat4f("view", view);
-        shader->setMat4f("projection", proj);
         shader->setMat4f("model", p_transformSystem->GetWorldTransform(entity));
         shader->setVec3f("albedo", mat ? mat->albedo : mathpp::vec3f{1.0f,1.0f,1.0f});
         shader->setVec3f("viewVec", viewVec);
@@ -82,8 +82,6 @@ void Renderer::DrawEntity(const Scene* scene, Entity entity,
         if (!tex) tex = fallBackTexture.get();
         tex->Bind(0);
         shader->setInt("meshTexture", 0);
-        shader->setMat4f("view", view);
-        shader->setMat4f("projection", proj);
         shader->setMat4f("model", p_transformSystem->GetWorldTransform(entity));
 
         if (features & Feature_Skinning) UploadSkinningPalette(scene, entity, *shader);
@@ -101,4 +99,15 @@ void Renderer::UploadSkinningPalette(const Scene* scene, Entity entity, const Sh
     for (size_t i = 0; i < palette.size(); ++i) {
         shader.setMat4f("boneMatrices[" + std::to_string(i) + "]", palette[i]);
     }
+}
+
+void Renderer::UploadCamera(const mathpp::mat4f& view, const mathpp::mat4f& proj, const mathpp::vec3f& camPos) {
+    CameraBlock cb{};
+    cb.view = view;
+    cb.projection = proj;
+    cb.cameraPos[0] = camPos.x;
+    cb.cameraPos[1] = camPos.y;
+    cb.cameraPos[2] = camPos.z;
+    cb.cameraPos[3] = 1.0f;
+    up_cameraUBO->Update(&cb, sizeof(cb));
 }

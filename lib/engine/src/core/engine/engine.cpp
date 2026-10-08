@@ -9,6 +9,7 @@
 #include "core/system/material/material.hpp"
 #include "core/system/mesh/mesh.hpp"
 
+
 void Engine::Init(unsigned int width, unsigned int height,Camera* camera,Scene* scene) {
     p_cam = camera;
     p_scene = scene;

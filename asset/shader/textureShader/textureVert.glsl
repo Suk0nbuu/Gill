@@ -3,11 +3,11 @@ layout (location = 0) in vec3 pos;
 layout (location = 2) in vec2 UV;
 
 #ifdef USE_SKINNING
-#include "skinning.glsl"
+#include "../core/skinning.glsl"
 #endif
 
-uniform mat4 view;
-uniform mat4 projection;
+#include "../core/camera.glsl"
+
 uniform mat4 model;
 
 out vec2 texCoord;

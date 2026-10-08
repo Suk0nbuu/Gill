@@ -2,13 +2,15 @@
 layout (location = 3) in ivec4 aBoneIndices;
 layout (location = 4) in vec4 aBoneWeights;
 
-uniform mat4 boneMatrices[64]; // cap — revisit with a UBO/SSBO once real rigs exceed this
+layout(std140) uniform Skin { mat4 boneMatrices[64]; };
 
 mat4 GetSkinMatrix() {
-    return aBoneWeights.x * boneMatrices[aBoneIndices.x]
+    float total = aBoneWeights.x + aBoneWeights.y + aBoneWeights.z + aBoneWeights.w;
+    if (total < 0.0001) return mat4(1.0);
+    return (aBoneWeights.x * boneMatrices[aBoneIndices.x]
     + aBoneWeights.y * boneMatrices[aBoneIndices.y]
     + aBoneWeights.z * boneMatrices[aBoneIndices.z]
-    + aBoneWeights.w * boneMatrices[aBoneIndices.w];
+    + aBoneWeights.w * boneMatrices[aBoneIndices.w]) / total;
 }
 
 vec3 GetSkinnedPosition(vec3 localPos) {

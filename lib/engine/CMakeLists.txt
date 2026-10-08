@@ -35,7 +35,6 @@ add_library(engine STATIC
         include/core/component/camera/camera.hpp
         include/editor/grid/grid.hpp
         include/core/system/asset/asset.hpp
-        include/component/sunlight.hpp
         include/editor/gizmo/gizmo.hpp
         include/io/obj/obj.hpp
         include/editor/core/editor.hpp
@@ -82,6 +81,11 @@ add_library(engine STATIC
         include/scene/sceneSerializer.hpp
         src/scene/sceneSerializer.cpp
         include/component/name.hpp
+        include/component/light.hpp
+        include/render/data/bindings.hpp
+        include/render/data/uniform.hpp
+        src/render/data/uniform.cpp
+        include/render/data/cameraBlock.hpp
 
 
 )

@@ -9,6 +9,7 @@
 #include "component/mesh.hpp"
 #include "core/system/mesh/mesh.hpp"
 #include "render/shader/shaderVariant.hpp"
+#include "render/data/uniform.hpp"
 
 class ArmatureSystem;
 class TransformSystem;
@@ -37,12 +38,13 @@ class Renderer {
     ViewportMode GetViewportMode();
 private:
     void UploadSkinningPalette(const Scene* scene, Entity entity, const Shader& shader);
+    void UploadCamera(const mathpp::mat4f& view, const mathpp::mat4f& proj, const mathpp::vec3f& camPos);
     void DrawEntity(const Scene* scene, Entity entity, const mathpp::mat4f& view,const comp::MeshComponent& meshComp, const mathpp::mat4f& proj,const mathpp::vec3f& viewVec);
     std::unique_ptr<Shader> solidShader;
     std::unique_ptr<Shader> textureShader;
     std::unique_ptr<Texture> matCapTexture;
     std::unique_ptr<Texture> fallBackTexture;
-
+    std::unique_ptr<UniformBuffer> up_cameraUBO;
     ShaderVariantCache m_shaderCache;
 
     TransformSystem* p_transformSystem;

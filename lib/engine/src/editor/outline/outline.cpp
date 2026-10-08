@@ -14,18 +14,18 @@ void Outline::Init(MeshSystem* meshSystem,TransformSystem* transformSystem,Selec
     p_selectionManager = selectionManager;
 }
 
-void Outline::Draw(const Scene* scene,const mathpp::mat4f& proj, const mathpp::mat4f& view) const {
+void Outline::Draw(const Scene* scene) const {
     up_outlineShader->Use();
     glEnable(GL_CULL_FACE);
     glCullFace(GL_FRONT);
-    scene->ForEach<comp::MeshComponent>([this,scene,&view,&proj](Entity entity,const comp::MeshComponent& meshComp) {
-        DrawEntity(scene,proj,view,entity,meshComp);
+    scene->ForEach<comp::MeshComponent>([this,scene](Entity entity,const comp::MeshComponent& meshComp) {
+        DrawEntity(scene,entity,meshComp);
     });
     glCullFace(GL_BACK);
     glDisable(GL_CULL_FACE);
 }
 
-void Outline::DrawEntity(const Scene* scene,const mathpp::mat4f &proj, const mathpp::mat4f &view,Entity entity,const comp::MeshComponent& meshComp) const {
+void Outline::DrawEntity(const Scene* scene,Entity entity,const comp::MeshComponent& meshComp) const {
     const  auto& selected = p_selectionManager->GetAllSelected();
     if (!selected.contains(entity)) return; //safeguard
     auto mesh = p_meshSystem->GetMesh(meshComp.meshID);
@@ -33,8 +33,6 @@ void Outline::DrawEntity(const Scene* scene,const mathpp::mat4f &proj, const mat
     if (!mesh) return;
 
     up_outlineShader->setMat4f("model",worldTransform);
-    up_outlineShader->setMat4f("view",view);
-    up_outlineShader->setMat4f("projection",proj);
     mesh->Draw();
 }
 

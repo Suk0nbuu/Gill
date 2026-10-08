@@ -6,6 +6,8 @@
 #include <iostream>
 #include <sstream>
 #include <filesystem>
+#include "render/data/bindings.hpp"
+
 
 std::string Shader::LoadShaderSourceWithIncludes(const std::string& path) {
     std::ifstream file(path);
@@ -146,6 +148,12 @@ Shader::Shader(const std::string& vertPath, const std::string& fragPath, const s
         glGetProgramInfoLog(m_ID, 512, NULL, infoLog);
         std::cerr << "Shader program link error:\n" << infoLog << std::endl;
     }
+    auto bindBlock = [&](const char* name, unsigned binding) {
+        GLuint idx = glGetUniformBlockIndex(m_ID, name);
+        if (idx != GL_INVALID_INDEX) glUniformBlockBinding(m_ID, idx, binding);
+    };
+    bindBlock("Camera", kCameraBinding);
+    bindBlock("Skin",   kSkinBinding);
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
 }

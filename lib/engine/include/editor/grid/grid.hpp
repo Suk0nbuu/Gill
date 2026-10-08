@@ -9,7 +9,7 @@ class GridRenderer {
 public:
     GridRenderer() = default;
     void Init(float extent = 100.0f); // builds the quad mesh + compiles grid shader once
-    void Render(const mathpp::mat4f& view, const mathpp::mat4f& projection, const mathpp::vec3f& camPos);
+    void Render(const mathpp::vec3f& camPos);
 
 private:
     std::unique_ptr<Mesh> up_gridMesh;

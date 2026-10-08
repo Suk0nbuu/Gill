@@ -28,14 +28,14 @@ void Selector::Init(unsigned int width, unsigned int height) {
 
 
 
-void Selector::RenderScene(const Scene* scene, const mathpp::mat4f& view, const mathpp::mat4f& projection,TransformSystem* transformSystem,MeshSystem* meshSystem) {
+void Selector::RenderScene(const Scene* scene,TransformSystem* transformSystem,MeshSystem* meshSystem) {
     GLint clearValue = -1;
     glBindFramebuffer(GL_FRAMEBUFFER, m_FBO);
     glClearBufferiv(GL_COLOR, 0, &clearValue);
     glClear(GL_DEPTH_BUFFER_BIT);
     up_selectShader->Use();
-    scene->ForEach<comp::MeshComponent>([this, scene, &view, &projection,transformSystem,meshSystem](Entity entity,const comp::MeshComponent& meshComp) {
-       RenderEntityID(scene, entity, meshComp, view, projection,transformSystem,meshSystem);
+    scene->ForEach<comp::MeshComponent>([this, scene,transformSystem,meshSystem](Entity entity,const comp::MeshComponent& meshComp) {
+       RenderEntityID(scene, entity, meshComp,transformSystem,meshSystem);
    });
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -55,11 +55,9 @@ std::optional<Entity> Selector::ReadEntityAt(int x, int y) const {
     return static_cast<Entity>(pickedID);
 }
 
-void Selector::RenderEntityID(const Scene *scene,Entity entity, const comp::MeshComponent &meshComp, const mathpp::mat4f &view, const mathpp::mat4f &projection,TransformSystem* transformSystem,MeshSystem* meshSystem) {
+void Selector::RenderEntityID(const Scene *scene,Entity entity, const comp::MeshComponent &meshComp,TransformSystem* transformSystem,MeshSystem* meshSystem) {
     auto mesh = meshSystem->GetMesh(meshComp.meshID);
     up_selectShader->setMat4f("model",transformSystem->GetWorldTransform(entity) );
-    up_selectShader->setMat4f("view", view);
-    up_selectShader->setMat4f("projection", projection);
     up_selectShader->setInt("ObjectID", static_cast<int>(entity));
     mesh->Draw();
 
