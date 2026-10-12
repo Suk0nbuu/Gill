@@ -42,6 +42,7 @@ ViewportMode Renderer::GetViewportMode() {
 
 void Renderer::renderScene(const Scene* scene, const mathpp::mat4f& view, const mathpp::mat4f& projection,const mathpp::vec3f& viewVec) {
     UploadCamera(view,projection,viewVec);
+    UploadLight();
     scene->ForEach<comp::MeshComponent>([this, scene, &view, &projection,&viewVec](Entity entity,const comp::MeshComponent& meshComp) {
         DrawEntity(scene, entity, view, meshComp,projection,viewVec);
     });

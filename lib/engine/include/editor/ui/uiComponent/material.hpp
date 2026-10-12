@@ -1,10 +1,9 @@
 #pragma once
+#include "component/entity.hpp"
+#include "core/engine/engineContext.hpp"
+struct EditorContext;
 
-#include "editor/registry/registry.hpp"
-
-class Scene;
-
-bool HasMaterial(EditorContext&, Entity e);
-void AddMaterial(Entity e, EditorContext& ctx);
-void RemoveMaterial(Entity e);
-void DrawMaterialInspector(Entity e,EditorContext& ctx);
+bool HasMaterial(const EngineContext& ctx, Entity e);
+bool DrawMaterialInspector(EditorContext& ctx, Entity e);
+void MaterialAddMenu(EditorContext& ctx, Entity e);
+void RemoveMaterialComponent(const EngineContext& ctx, Entity e);

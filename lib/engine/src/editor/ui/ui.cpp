@@ -33,6 +33,8 @@ void UIManager::Init(Window* window,Scene* scene,TransformSystem* transformSyste
 
     ImGui_ImplOpenGL3_Init("#version 330");
     ImGui_ImplGlfw_InitForOpenGL(window->GetWindow(),true);
+    RegisterBuiltinComponents(m_registry);
+    m_ctx.p_componentRegistry = &m_registry;
     v_panels.emplace_back(std::make_unique<PropertiesPanel>(m_ctx));
     v_panels.emplace_back(std::make_unique<HierarchyPanel>(m_ctx));
     v_panels.emplace_back(std::make_unique<GizmoPanel>(m_ctx));
@@ -149,28 +151,32 @@ void PropertiesPanel::Draw(){
     if (ImGui::InputFloat3("Scale", &scale.x)) {
         m_ctx.p_transformSystem->SetScale(entity, scale);
     }
-    for (const auto& type : ComponentTypes) {
-        if (type.Has(m_ctx.p_scene, entity)) {
-            if (ImGui::CollapsingHeader(type.name)) {
-                type.DrawInspector(m_ctx.p_scene, entity, m_ctx);
-            }
-        }
+    const ComponentDescriptor* toRemove = nullptr;
+    bool changed = false;
+
+    for (const auto& d : m_ctx.p_componentRegistry->All()) {
+        if (!d.Has(m_ctx, entity)) continue;
+        bool keep = true;
+        bool open = d.Remove ? ImGui::CollapsingHeader(d.name, &keep, ImGuiTreeNodeFlags_DefaultOpen)
+                             : ImGui::CollapsingHeader(d.name, ImGuiTreeNodeFlags_DefaultOpen);
+        if (!keep) toRemove = &d;
+        if (open) changed |= d.DrawInspector(m_ctx, entity);
     }
-    if (ImGui::Button("Add Component")) {
-        ImGui::OpenPopup("Add Component");
-    }
-    if (ImGui::BeginPopup("Add Component")) {
-        for (const auto& type : ComponentTypes) {
-            if (!type.Has(m_ctx.p_scene, entity)) {
-                if (ImGui::Selectable(type.name)) {
-                    type.Add(m_ctx.p_scene, entity, m_ctx);
-                }
-            }
+    if (toRemove) { toRemove->Remove(m_ctx, entity); changed = true; }
+    // if (changed) fire  dirty event here
+
+    if (ImGui::Button("Add Component")) ImGui::OpenPopup("add_component");
+    if (ImGui::BeginPopup("add_component")) {
+        for (const auto& d : m_ctx.p_componentRegistry->All()) {
+            if (d.Has(m_ctx, entity)) continue;
+            const ComponentDescriptor* req = d.requires_ ? m_ctx.p_componentRegistry->Find(d.requires_) : nullptr;
+            const bool blocked = req && !req->Has(m_ctx, entity);
+            ImGui::BeginDisabled(blocked);
+            d.DrawAddMenu(m_ctx, entity);
+            ImGui::EndDisabled();
         }
         ImGui::EndPopup();
     }
-
-
     ImGui::End();
 }
 

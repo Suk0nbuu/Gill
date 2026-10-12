@@ -1,9 +1,9 @@
 #pragma once
-#include "editor/registry/registry.hpp"
+#include "component/entity.hpp"
+#include "core/engine/engineContext.hpp"
+struct EditorContext;
 
-class scene;
-
-bool HasMesh(EditorContext& ctx, Entity e);
-void AddMesh(Entity e, EditorContext& ctx);
-void RemoveMesh(EditorContext&, Entity e);
-void DrawMeshInspector(Entity e, EditorContext& ctx);
+bool HasMesh(const EngineContext& ctx, Entity e);
+bool DrawMeshInspector(EditorContext& ctx, Entity e);
+void MeshAddMenu(EditorContext& ctx, Entity e);
+void RemoveMesh(const EngineContext& ctx, Entity e);

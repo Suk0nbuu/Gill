@@ -3,6 +3,7 @@
 #include "component/entity.hpp"
 #include "render/mesh/primitive.hpp"
 #include "editor/registry/registry.hpp"
+#include "editor/registry/componentDescriptor.hpp"
 #include "core/system/mesh/mesh.hpp"
 #include "core/system/material/material.hpp"
 #include "uiComponent/mesh.hpp"
@@ -10,6 +11,13 @@
 #include <vector>
 #include "scene/scene.hpp"
 #include "core/component/event/event.hpp"
+
+namespace {
+    void RegisterBuiltinComponents(ComponentRegistry& r) {
+        r.Register({ "Mesh",     HasMesh,     DrawMeshInspector,     MeshAddMenu,     RemoveMesh });
+        r.Register({ "Material", HasMaterial, DrawMaterialInspector, MaterialAddMenu, RemoveMaterialComponent, "Mesh" });
+    }
+}
 
 
 
@@ -44,10 +52,7 @@ public:
     void Draw() override;
 private:
     EditorContext m_ctx;
-    static inline const ComponentTypeInfo ComponentTypes[] = {
-        { "Mesh",     AddMesh,    RemoveMesh,DrawMeshInspector,HasMesh },
-        {"Material", AddMaterial, RemoveMaterial, DrawMaterialInspector, HasMaterial}
-    };
+
 };
 
 class HierarchyPanel : public EditorPanel {
@@ -107,6 +112,7 @@ private:
     EventDelegate<>* p_closeRequested = nullptr;
 
     std::vector<std::unique_ptr<EditorPanel>> v_panels;
+    ComponentRegistry m_registry;
     void AddPrimitive(PrimitiveType type);
     void AddEmpty(std::optional<Entity> parent = std::nullopt);
     void AddSunlight(Scene* scene);

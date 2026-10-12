@@ -17,6 +17,7 @@ class EditorInputMap;
 class SelectionManager;
 class Hierarchy;
 class Input;
+class ComponentRegistry;
 
 struct EditorContext : EngineContext {
     Input* p_input;
@@ -24,6 +25,8 @@ struct EditorContext : EngineContext {
     Renderer* p_renderer;
     EditorInputMap* p_editorInputMap;
     SelectionManager* p_selectionManager;
+    ComponentRegistry* p_componentRegistry;
+
 };
 
 

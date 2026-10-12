@@ -154,6 +154,7 @@ Shader::Shader(const std::string& vertPath, const std::string& fragPath, const s
     };
     bindBlock("Camera", kCameraBinding);
     bindBlock("Skin",   kSkinBinding);
+    bindBlock("Lights",  kLightBinding);
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
 }
