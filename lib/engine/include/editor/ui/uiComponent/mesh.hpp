@@ -3,7 +3,7 @@
 
 class scene;
 
-bool HasMesh(Scene* s, Entity e);
-void AddMesh(Scene* s, Entity e, EditorContext& ctx);
-void RemoveMesh(Scene* s, Entity e);
-void DrawMeshInspector(Scene* s, Entity e, EditorContext& ctx);
+bool HasMesh(EditorContext& ctx, Entity e);
+void AddMesh(Entity e, EditorContext& ctx);
+void RemoveMesh(EditorContext&, Entity e);
+void DrawMeshInspector(Entity e, EditorContext& ctx);

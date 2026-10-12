@@ -20,7 +20,7 @@ void Engine::Init(unsigned int width, unsigned int height,Camera* camera,Scene* 
     up_materialSystem = std::make_unique<MaterialSystem>();
     up_transformSystem->Init(up_hierarchy.get());
     up_armatureSystem = std::make_unique<ArmatureSystem>();
-    up_renderer->Init(up_transformSystem.get(),up_meshSystem.get(),up_materialSystem.get(),up_armatureSystem.get());
+    up_renderer->Init(scene,up_transformSystem.get(),up_meshSystem.get(),up_materialSystem.get(),up_armatureSystem.get());
     m_width = width;
     m_height = height;
 

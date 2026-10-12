@@ -1,5 +1,6 @@
 #include "render/core/renderer.hpp"
 #include "render/shader/shader.hpp"
+#include "core/system/light/light.hpp"
 #include "render/texture/texture.hpp"
 #include "core/system/transform/transform.hpp"
 #include "core/system/mesh/mesh.hpp"
@@ -11,19 +12,24 @@
 #include "scene/scene.hpp"
 #include "render/data/bindings.hpp"
 #include "render/data/cameraBlock.hpp"
+#include "render/data/lightBlock.hpp"
 #include "render/data/uniform.hpp"
 
-void Renderer::Init(TransformSystem* transformSystem,MeshSystem* meshSystem,MaterialSystem* materialSystem,ArmatureSystem* armatureSystem) {
+void Renderer::Init(Scene* scene,TransformSystem* transformSystem,MeshSystem* meshSystem,MaterialSystem* materialSystem,ArmatureSystem* armatureSystem) {
     glEnable(GL_DEPTH_TEST);
+    p_scene = scene;
     p_transformSystem = transformSystem;
     p_meshSystem = meshSystem;
     p_materialSystem = materialSystem;
     p_armatureSystem = armatureSystem;
+    up_lightSystem = std::make_unique<LightSystem>();
+    up_lightSystem->Init(transformSystem);
     textureShader = std::make_unique<Shader>("asset/shader/textureShader/textureVert.glsl","asset/shader/textureShader/textureFrag.glsl");
     solidShader = std::make_unique<Shader>("asset/shader/solidShader/solidVert.glsl","asset/shader/solidShader/solidFrag.glsl");
     matCapTexture = std::make_unique<Texture>("asset/texture/core/SolidTex2.png");
     fallBackTexture = std::make_unique<Texture>("asset/texture/core/Debugempty.png");
     up_cameraUBO = std::make_unique<UniformBuffer>(sizeof(CameraBlock), kCameraBinding);
+    up_lightUBO = std::make_unique<UniformBuffer>(sizeof(LightBlock), kLightBinding);
 }
 
 void Renderer::SetViewportMode(ViewportMode mode) {
@@ -70,10 +76,10 @@ void Renderer::DrawEntity(const Scene* scene, Entity entity,
         const Shader* baseShader = mat ? p_materialSystem->GetShader(mat->shaderID) : nullptr;
         const Shader* shader = baseShader ? baseShader : solidShader.get();
         shader->Use();
+        shader->setVec3f("albedo",mat->albedo);
+        shader->setFloat("metallic",mat->metallic);
+        shader->setFloat("roughness",mat->roughness);
         shader->setMat4f("model", p_transformSystem->GetWorldTransform(entity));
-        shader->setVec3f("albedo", mat ? mat->albedo : mathpp::vec3f{1.0f,1.0f,1.0f});
-        shader->setVec3f("viewVec", viewVec);
-        shader->setVec3f("lightDir", mathpp::vec3f{0.8f,0.2f,0.0f});
     }
     else {
         Shader* shader = m_shaderCache.Get("asset/shader/textureShader/textureVert.glsl", "asset/shader/textureShader/textureFrag.glsl", features);
@@ -110,4 +116,10 @@ void Renderer::UploadCamera(const mathpp::mat4f& view, const mathpp::mat4f& proj
     cb.cameraPos[2] = camPos.z;
     cb.cameraPos[3] = 1.0f;
     up_cameraUBO->Update(&cb, sizeof(cb));
+}
+
+void Renderer::UploadLight() {
+    LightBlock lb{};
+    up_lightSystem->Gather(p_scene,lb);
+    up_lightUBO->Update(&lb, sizeof(lb));
 }

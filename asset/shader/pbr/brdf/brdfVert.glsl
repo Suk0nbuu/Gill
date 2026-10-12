@@ -8,11 +8,9 @@ uniform mat4 model;
 #include "../../core/camera.glsl"
 
 out vec3 normals;
-out vec4 vertexColor;
-
-void main()
-{
-    gl_Position = projection * view * model * vec4(position,1.0f);
-    normals = anormals;
-    vertexColor = vec4(0.5f, 0.0f, 0.0f, 1.0f);
+out vec3 fragPos;
+void main() {
+    gl_Position = projection * view * model * vec4(position, 1.0f);
+    normals = mat3(transpose(inverse(model))) * anormals;   // same as celVert; optimize later
+    fragPos = vec3(model * vec4(position, 1.0f));
 }

@@ -50,7 +50,7 @@ void UIManager::EndFrame() {
 }
 
 
-void UIManager::AddPrimitive(Scene* scene, PrimitiveType type) {
+void UIManager::AddPrimitive(PrimitiveType type) {
     comp::PrimitiveComponent prim;
     prim.type = type;
     prim.rings = m_primitiveData.rings;
@@ -59,15 +59,20 @@ void UIManager::AddPrimitive(Scene* scene, PrimitiveType type) {
     prim.height = m_primitiveData.height;
 
     comp::MeshComponent meshComp;
+    comp::MaterialComponent matComp;
+    Material mat;
+    matComp.materialID = m_ctx.p_materialSystem->RegisterMaterial(std::move(mat));
+
     meshComp.meshID = m_ctx.p_meshSystem->AddPrimitive(prim.type, prim.rings, prim.segments, prim.radius, prim.height);
 
-    Entity entity = scene->CreateEntity();
+    Entity entity = m_ctx.p_scene->CreateEntity();
     m_ctx.p_transformSystem->AddTransform(entity);
-    scene->InsertComponent(entity, meshComp);
-    scene->InsertComponent(entity, prim);
+    m_ctx.p_scene->InsertComponent(entity, meshComp);
+    m_ctx.p_scene->InsertComponent(entity, prim);
+    m_ctx.p_scene->InsertComponent(entity,matComp);
 }
 
-void UIManager::RenderAddMenu(Scene* scene) {
+void UIManager::RenderAddMenu() {
     if (ImGui::BeginMainMenuBar()) {
 
         if (ImGui::BeginMenu("File")) {
@@ -77,11 +82,12 @@ void UIManager::RenderAddMenu(Scene* scene) {
         }
 
         if (ImGui::BeginMenu("Add")) {
-            if (ImGui::MenuItem("Cube"))   AddPrimitive(scene, PrimitiveType::Cube);
-            if (ImGui::MenuItem("Sphere")) AddPrimitive(scene, PrimitiveType::Sphere);
-            if (ImGui::MenuItem("Plane"))  AddPrimitive(scene, PrimitiveType::Plane);
-            if (ImGui::MenuItem("Cylinder")) AddPrimitive(scene, PrimitiveType::Cylinder);
-            if (ImGui::MenuItem("Cone")) AddPrimitive(scene, PrimitiveType::Cone);
+            if (ImGui::MenuItem("Cube"))   AddPrimitive(PrimitiveType::Cube);
+            if (ImGui::MenuItem("Sphere")) AddPrimitive(PrimitiveType::Sphere);
+            if (ImGui::MenuItem("Plane"))  AddPrimitive(PrimitiveType::Plane);
+            if (ImGui::MenuItem("Cylinder")) AddPrimitive(PrimitiveType::Cylinder);
+            if (ImGui::MenuItem("Cone")) AddPrimitive(PrimitiveType::Cone);
+            if (ImGui::MenuItem("Empty")) AddEmpty();
             ImGui::EndMenu();
         }
         ImGui::EndMainMenuBar();
@@ -244,7 +250,11 @@ void HierarchyPanel::DrawEntityNode(Entity entity) {
             std::snprintf(m_renameBuf, sizeof(m_renameBuf), "%s", title.c_str());
             m_focusRename = true;
         }
-        // later: Delete, Duplicate, Create Child
+        if (ImGui::MenuItem("Delete", "Del")) {
+            const auto& sel = m_ctx.p_selectionManager->GetAllSelected();
+            if (sel.contains(entity)) m_pendingDelete.assign(sel.begin(), sel.end());   // delete the whole selection
+            else                      m_pendingDelete = { entity };
+        }
         ImGui::EndPopup();
     }
     if (renaming) {
@@ -291,12 +301,12 @@ void HierarchyPanel::CommitRename(Entity entity) {
 }
 
 
-void UIManager::RenderPrimitiveOp(Scene* scene) {
+void UIManager::RenderPrimitiveOp() {
     auto selected = m_ctx.p_selectionManager->GetActiveSelected();
     if (!selected.has_value()) return;
     Entity entity = *selected;
 
-    comp::PrimitiveComponent* prim = scene->TryGetComponent<comp::PrimitiveComponent>(entity);
+    comp::PrimitiveComponent* prim = m_ctx.p_scene->TryGetComponent<comp::PrimitiveComponent>(entity);
     if (prim == nullptr) return;
     if (prim->type == PrimitiveType::Cube || prim->type == PrimitiveType::Plane) return;
 
@@ -310,7 +320,7 @@ void UIManager::RenderPrimitiveOp(Scene* scene) {
     changed |= ImGui::DragFloat("Radius", &prim->radius, 0.01f, 0.01f, 100.0f);
     ImGui::End();
 
-    if (changed) RegeneratePrimitiveMesh(scene, entity);
+    if (changed) RegeneratePrimitiveMesh(m_ctx.p_scene, entity);
 }
 
 void UIManager::RegeneratePrimitiveMesh(Scene* scene, Entity entity) {
@@ -372,4 +382,16 @@ void UIManager::ApplyEditorTheme() {
     c[ImGuiCol_TabSelected]          = ImVec4(0.0f, 0.729f, 0.40f, 1.0f);
     c[ImGuiCol_TabDimmed]            = ImVec4(0.0f, 0.729f, 0.40f, 1.0f);  // inactive tab in an unfocused dock
     c[ImGuiCol_TabDimmedSelected]    = ImVec4(0.0f, 0.729f, 0.40f, 1.0f);  // active tab in an unfocused dock
+}
+
+
+void UIManager::AddEmpty(std::optional<Entity> parent) {
+    Entity e = m_ctx.p_scene->CreateEntity();
+    m_ctx.p_transformSystem->AddTransform(e);
+    m_ctx.p_scene->InsertComponent(e, comp::NameComponent{"Empty"});
+    if (parent) {
+        m_ctx.p_hierarchy->SetParent(e, *parent);
+        m_ctx.p_transformSystem->MarkDirty(e);
+    }
+    m_ctx.p_selectionManager->SetSelected(e);
 }

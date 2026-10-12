@@ -58,7 +58,17 @@ AssetHandle MaterialSystem::LoadShaderFile(const std::string &vertPath, const st
     return m_shaderManager.Load(Shader(vertPath, fragPath));
 }
 
-const Material *MaterialSystem::GetDefaultMaterial() const {
-    return &m_defaultMaterial;
+AssetHandle MaterialSystem::GetDefaultShader()  {
+    if (m_defaultBRDF.index == UINT32_MAX) {
+        m_defaultBRDF = LoadShaderFile("asset/shader/pbr/brdf/brdfVert.glsl", "asset/shader/pbr/brdf/brdfFrag.glsl");
+    }
+   return m_defaultBRDF;
 }
 
+
+Material* MaterialSystem::GetMaterial(AssetHandle id) {
+    if (m_materialManager.Has(id)) {
+        return m_materialManager.Get(id);
+    }
+    return nullptr;
+}

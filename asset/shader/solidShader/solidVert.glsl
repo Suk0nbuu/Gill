@@ -7,6 +7,7 @@ layout (location = 1) in vec3 normals;
 #endif
 
 #include "../core/camera.glsl"
+uniform mat4 model;
 uniform mat3 normalMatrix;
 
 out vec3 vNormal;

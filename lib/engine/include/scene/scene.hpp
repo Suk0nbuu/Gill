@@ -243,7 +243,7 @@ T* TryGetComponent(Entity entity);
     }
     template<>
     inline void Scene::RemoveComponent<comp::NameComponent>(Entity entity) {
-        m_meshes.Remove(entity);
+        m_names.Remove(entity);
     }
     template<>
     inline void Scene::RemoveComponent<comp::PrimitiveComponent>(Entity entity) {

@@ -9,7 +9,8 @@ class MaterialSystem {
 public:
 
     [[nodiscard]]const Material* GetMaterial(AssetHandle handle) const;
-    [[nodiscard]]const Material* GetDefaultMaterial() const;
+    [[nodiscard]] Material* GetMaterial(AssetHandle handle);
+    [[nodiscard]] AssetHandle GetDefaultShader();
     [[nodiscard]]bool HasMaterial(AssetHandle handle) const;
     AssetHandle RegisterMaterial(Material&& material);
     void RemoveMaterial(AssetHandle handle);
@@ -30,5 +31,6 @@ private:
     AssetManager<Material> m_materialManager;
     AssetManager<Shader> m_shaderManager;
     AssetManager<Texture> m_textureManager;
-    Material m_defaultMaterial;
+    AssetHandle m_defaultBRDF;
+
 };

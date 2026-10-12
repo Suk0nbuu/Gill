@@ -86,6 +86,15 @@ add_library(engine STATIC
         include/render/data/uniform.hpp
         src/render/data/uniform.cpp
         include/render/data/cameraBlock.hpp
+        include/render/data/lightBlock.hpp
+        include/core/system/light/light.hpp
+        src/core/system/light/light.cpp
+        include/editor/ui/uiComponent/material.hpp
+        src/editor/ui/uiComponent/material.cpp
+        include/core/engine/engineContext.hpp
+        include/core/system/entity/entityOps.hpp
+        src/core/system/entity/entityOps.cpp
+        include/editor/registry/componentDescriptor.hpp
 
 
 )

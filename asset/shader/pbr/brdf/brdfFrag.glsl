@@ -2,12 +2,13 @@
 
 #define PI 3.14159265359
 
+#include "../../core/camera.glsl"
+#include "../../core/light.glsl"
 in vec3 normals;
-in vec3 vertexColor;
+in vec3 fragPos;
+
 
 uniform vec3 albedo;
-uniform vec3 viewVec;
-uniform vec3 lightDir;
 
 // Added Metallic parameter for full PBR support
 uniform float metallic = 0.0; 
@@ -81,15 +82,15 @@ vec3 BRDFShader(vec3 albedo, vec3 normal, vec3 view, vec3 light, float rough, fl
 }
 
 void main() {
-    vec3 view = normalize(viewVec);
-    vec3 light = normalize(lightDir);
-    vec3 normal = normalize(normals);
+    vec3 N = normalize(normals);
+    vec3 V = normalize(cameraPos.xyz - fragPos);
 
-    vec3 color = BRDFShader(albedo, normal, view, light, roughness, metallic);
-
-    // Basic Tone Mapping + Gamma Correction
-    color = color / (color + vec3(1.0)); // Reinhard
-    color = pow(color, vec3(1.0 / 2.2));  // Linear to sRGB space
-
+    vec3 color = vec3(0.03) * albedo;                 // ambient floor, so unlit sides aren't black
+    for (int i = 0; i < lightCount; ++i) {
+        LightSample s = SampleLight(i, fragPos);
+        color += BRDFShader(albedo, N, V, s.L, roughness, metallic) * s.radiance;
+    }
+    color = color / (color + vec3(1.0));              // existing tone map + gamma, unchanged
+    color = pow(color, vec3(1.0 / 2.2));
     fragColor = vec4(color, 1.0);
 }

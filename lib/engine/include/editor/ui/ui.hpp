@@ -6,6 +6,7 @@
 #include "core/system/mesh/mesh.hpp"
 #include "core/system/material/material.hpp"
 #include "uiComponent/mesh.hpp"
+#include "uiComponent/material.hpp"
 #include <vector>
 #include "scene/scene.hpp"
 #include "core/component/event/event.hpp"
@@ -45,6 +46,7 @@ private:
     EditorContext m_ctx;
     static inline const ComponentTypeInfo ComponentTypes[] = {
         { "Mesh",     AddMesh,    RemoveMesh,DrawMeshInspector,HasMesh },
+        {"Material", AddMaterial, RemoveMaterial, DrawMaterialInspector, HasMaterial}
     };
 };
 
@@ -57,6 +59,8 @@ private:
     void CommitRename(Entity entity);
     EditorContext m_ctx;
     std::optional<Entity> m_renaming;
+    std::vector<Entity> m_pendingDelete;
+
     char m_renameBuf[128] = {};
     bool m_focusRename = false;
 };
@@ -84,8 +88,8 @@ class UIManager {
 public:
     void Init(Window* window,Scene* scene,TransformSystem* transformSystem, Hierarchy* hierarchy,TransformData* gizmoData,Renderer* renderer,MeshSystem* meshSystem,MaterialSystem* materialSystem,EditorInputMap* editorInputMap,SelectionManager* selectionManager,Input* input);
     void RenderPanels();
-    void RenderAddMenu(Scene* scene);
-    void RenderPrimitiveOp(Scene* scene);
+    void RenderAddMenu();
+    void RenderPrimitiveOp();
     void RenderViewportMode();
     void BeginFrame();
     void EndFrame();
@@ -103,7 +107,8 @@ private:
     EventDelegate<>* p_closeRequested = nullptr;
 
     std::vector<std::unique_ptr<EditorPanel>> v_panels;
-    void AddPrimitive(Scene* scene, PrimitiveType type);
+    void AddPrimitive(PrimitiveType type);
+    void AddEmpty(std::optional<Entity> parent = std::nullopt);
     void AddSunlight(Scene* scene);
     ImGuiIO* p_io_ptr;
 
