@@ -28,7 +28,7 @@ namespace {
         ctx.p_transformSystem->RemoveTransform(e);
         s->DestroyEntity(e);          // last, so a recycled id never inherits stale components
     }
-}  // namespace
+}
 
 void DestroyEntityTree(const EngineContext& ctx, Entity root) {
     std::vector<Entity> order;    // children before parents

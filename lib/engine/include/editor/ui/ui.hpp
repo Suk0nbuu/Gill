@@ -62,6 +62,7 @@ class HierarchyPanel : public EditorPanel {
 private:
     void DrawEntityNode(Entity entity);
     void CommitRename(Entity entity);
+    void ApplyDeletion(const std::vector<Entity>& entities);
     EditorContext m_ctx;
     std::optional<Entity> m_renaming;
     std::vector<Entity> m_pendingDelete;

@@ -8,6 +8,7 @@
 #include "editor/gizmo/transformData.hpp"
 #include "render/core/renderer.hpp"
 #include "core/input/input.hpp"
+#include "core/system/entity/entityOps.hpp"
 #include "core/system/mesh/mesh.hpp"
 #include "editor/inputAction/inputAction.hpp"
 #include "editor/selector/selectionManager.hpp"
@@ -202,6 +203,7 @@ void HierarchyPanel::Draw() {
             ImGui::EndDragDropTarget();
         }
     }
+    ApplyDeletion(m_pendingDelete);
 
     ImGui::End();
 }
@@ -400,4 +402,31 @@ void UIManager::AddEmpty(std::optional<Entity> parent) {
         m_ctx.p_transformSystem->MarkDirty(e);
     }
     m_ctx.p_selectionManager->SetSelected(e);
+}
+
+void HierarchyPanel::ApplyDeletion(const std::vector<Entity>& entities) {
+    std::unordered_set<Entity> pendingSet(entities.begin(), entities.end());
+    std::vector<Entity> deletionRoots;
+
+    for (Entity e : entities) {
+        bool hasPendingAncestor = false;
+        auto parent = m_ctx.p_hierarchy->TryGetParent(e);
+
+        while (parent.has_value()) {
+            if (pendingSet.contains(*parent)) {
+                hasPendingAncestor = true;
+                break;
+            }
+
+            parent = m_ctx.p_hierarchy->TryGetParent(*parent);
+        }
+
+        if (!hasPendingAncestor) {
+            deletionRoots.push_back(e);
+        }
+    }
+
+    for (Entity root : deletionRoots) {
+        DestroyEntityTree(m_ctx, root);
+    }
 }

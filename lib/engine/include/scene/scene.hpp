@@ -285,6 +285,12 @@ T* TryGetComponent(Entity entity);
         }
     }
     template<>
+    inline void Scene::ForEach<comp::LightComponent>(std::function<void(Entity entity, comp::LightComponent& component)> func) {
+        for (size_t it = 0; it<m_lights.Size();it++) {
+            func(m_lights.GetEntity(it), m_lights[it]);
+        }
+    }
+    template<>
     inline void Scene::ForEach<comp::MaterialComponent>(std::function<void(Entity entity, const comp::MaterialComponent& component)> func) const {
         for (size_t it = 0; it<m_materials.Size();it++) {
             func(m_materials.GetEntity(it), m_materials[it]);

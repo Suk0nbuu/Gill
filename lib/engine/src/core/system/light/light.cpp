@@ -1,7 +1,6 @@
 #include "core/system/light/light.hpp"
 #include "render/data/lightBlock.hpp"
 #include "mathpp.hpp"
-#include "scene/scene.hpp"
 #include "core/system/transform/transform.hpp"
 
 void LightSystem::Init(TransformSystem* transformSystem) {

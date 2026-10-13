@@ -111,9 +111,9 @@ void Editor::Run(float deltaT) {
     up_outline->Draw(p_scene);
     up_ui->BeginFrame();
     up_ui->RenderPanels();
-    up_ui->RenderPrimitiveOp(p_scene);
+    up_ui->RenderPrimitiveOp();
     up_ui->RenderViewportMode();
-    up_ui->RenderAddMenu(p_scene);
+    up_ui->RenderAddMenu();
     up_ui->EndFrame();
 }
 
