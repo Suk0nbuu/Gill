@@ -97,27 +97,30 @@ bool ReadFloats(const json& obj, const char* key, float (&out)[N], std::string& 
     local.scale.x = scale[0]; local.scale.y = scale[1]; local.scale.z = scale[2];
 
     // primitive
-    if (!entity.contains("primitive") || !entity["primitive"].is_object()) {
-        error = "missing or invalid 'primitive' object";
-        return false;
+
+    if (entity.contains("primitive") || entity["primitive"].is_object()) {
+        const json& prim = entity["primitive"];
+
+        std::string typeName;
+        if (!Read(prim, "type", typeName, error)) return false;
+        auto type = magic_enum::enum_cast<PrimitiveType>(typeName);
+        if (!type) { error = "unknown primitive type: " + typeName; return false; }
+        local.prim.type = *type;
+
+        if (!Read(prim, "rings",    local.prim.rings,    error)) return false;
+        if (!Read(prim, "segments", local.prim.segments, error)) return false;
+        if (!Read(prim, "radius",   local.prim.radius,   error)) return false;
+        if (!Read(prim, "height",   local.prim.height,   error)) return false;
+
+        if (local.prim.rings < 2 || local.prim.rings > 128)       { error = "rings out of range (2-128)"; return false; }
+        if (local.prim.segments < 3 || local.prim.segments > 128) { error = "segments out of range (3-128)"; return false; }
+        if (!(local.prim.radius > 0.0f) || local.prim.radius > 100.0f) { error = "radius out of range (0-100]"; return false; }
+        if (!(local.prim.height > 0.0f) || local.prim.height > 100.0f) { error = "height out of range (0-100]"; return false; }
+        local.hasMesh = true;
     }
-    const json& prim = entity["primitive"];
-
-    std::string typeName;
-    if (!Read(prim, "type", typeName, error)) return false;
-    auto type = magic_enum::enum_cast<PrimitiveType>(typeName);
-    if (!type) { error = "unknown primitive type: " + typeName; return false; }
-    local.prim.type = *type;
-
-    if (!Read(prim, "rings",    local.prim.rings,    error)) return false;
-    if (!Read(prim, "segments", local.prim.segments, error)) return false;
-    if (!Read(prim, "radius",   local.prim.radius,   error)) return false;
-    if (!Read(prim, "height",   local.prim.height,   error)) return false;
-
-    if (local.prim.rings < 2 || local.prim.rings > 128)       { error = "rings out of range (2-128)"; return false; }
-    if (local.prim.segments < 3 || local.prim.segments > 128) { error = "segments out of range (3-128)"; return false; }
-    if (!(local.prim.radius > 0.0f) || local.prim.radius > 100.0f) { error = "radius out of range (0-100]"; return false; }
-    if (!(local.prim.height > 0.0f) || local.prim.height > 100.0f) { error = "height out of range (0-100]"; return false; }
+    else {
+        local.hasMesh = false;
+        }
 
     out = local;
     return true;
@@ -216,21 +219,18 @@ bool SceneSerializer::Apply(const std::vector<Entry> &entries,std::string& error
         p_transformSystem->SetRotation(ent,e.rot);
         p_transformSystem->SetScale(ent,e.scale);
 
-
-        comp::MeshComponent meshComp;
+        if (e.hasMesh == true) {
+            comp::MeshComponent meshComp;
+            meshComp.meshID = p_meshSystem->AddPrimitive(e.prim.type,e.prim.rings,e.prim.segments,e.prim.radius,e.prim.height);
+            p_scene->InsertComponent(ent,meshComp);
+            p_scene->InsertComponent(ent,e.prim);
+        }
 
         if (!e.name.empty()) {
             comp::NameComponent nameComp;
             nameComp.name = e.name;
             p_scene->InsertComponent(ent, nameComp);
         }
-
-
-
-
-        meshComp.meshID = p_meshSystem->AddPrimitive(e.prim.type,e.prim.rings,e.prim.segments,e.prim.radius,e.prim.height);
-        p_scene->InsertComponent(ent,meshComp);
-        p_scene->InsertComponent(ent,e.prim);
     }
 
     for (size_t i = 0; i < entries.size(); ++i) {
@@ -294,6 +294,7 @@ bool SceneSerializer::Save(const std::filesystem::path& path, std::string& error
         item["transform"] = {{"pos",{tComp.position.x,tComp.position.y,tComp.position.z}},{"rot",{tComp.rotation.w,tComp.rotation.x,tComp.rotation.y,tComp.rotation.z}},{"scale",{tComp.scale.x,tComp.scale.y,tComp.scale.z}}};
         if (pComp) {
             item["primitive"] = {{"type",std::string(magic_enum::enum_name(pComp->type))},{"rings",pComp->rings},{"segments",pComp->segments},{"height",pComp->height},{"radius",pComp->radius}};
+            item["HasMesh"] = true;
         }
         if (nComp) {
             item["name"] = nComp->name;
@@ -330,3 +331,5 @@ bool SceneSerializer::Save(const std::filesystem::path& path, std::string& error
     }
     return true;
 }
+
+

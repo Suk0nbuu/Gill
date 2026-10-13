@@ -20,6 +20,7 @@ struct Entry {
     mathpp::quatf rot;
     mathpp::vec3f scale;
     comp::PrimitiveComponent prim;
+    bool hasMesh = false;
 };
 
 
