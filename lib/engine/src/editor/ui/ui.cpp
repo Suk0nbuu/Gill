@@ -442,7 +442,6 @@ void UIManager::AddLight() {
     Entity entity = m_ctx.p_scene->CreateEntity();
     comp::LightComponent lComp;
     comp::PrimitiveComponent pComp;
-    comp::
     pComp.type = PrimitiveType::Sphere;
     comp::MeshComponent mComp;
     mComp.meshID = m_ctx.p_meshSystem->AddPrimitive(pComp.type,pComp.rings,pComp.segments,pComp.radius,pComp.height);
