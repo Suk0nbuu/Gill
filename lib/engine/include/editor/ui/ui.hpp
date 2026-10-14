@@ -17,7 +17,7 @@ namespace {
     void RegisterBuiltinComponents(ComponentRegistry& r) {
         r.Register({ "Mesh",     HasMesh,     DrawMeshInspector,     MeshAddMenu,     RemoveMesh });
         r.Register({ "Material", HasMaterial, DrawMaterialInspector, MaterialAddMenu, RemoveMaterialComponent, "Mesh" });
-        r.Register({"Light",HasLight,DrawLightInspector,LightAddMenu,RemoveLightComponent,"Material"});
+        r.Register({"Light",HasLight,DrawLightInspector,LightAddMenu,RemoveLightComponent,nullptr});
     }
 }
 

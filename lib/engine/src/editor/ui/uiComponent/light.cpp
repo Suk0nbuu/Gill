@@ -24,6 +24,8 @@ bool DrawLightInspector(EditorContext &ctx, Entity e) {
     const auto& l = ctx.p_scene->TryGetComponent<comp::LightComponent>(e);
     if (!l) return false;
     bool changed = false;
+    int t = int(l->type);
+    if (ImGui::Combo("Type", &t, "Directional\0Point\0Spot\0")) { l->type = comp::LightType(t); changed = true; }
     changed |= ImGui::ColorEdit3("Color", &l->color.x);
     changed |= ImGui::SliderFloat("Intensity", &l->intensity, 0.0f, 10.0f);
     changed |= ImGui::SliderFloat("Range", &l->range, 0.05f, 100.0f);
@@ -31,5 +33,5 @@ bool DrawLightInspector(EditorContext &ctx, Entity e) {
     changed |= ImGui::SliderFloat("Blend",&l->blend, 0.1f, 1.0f);
     return changed;
 
-   return changed;
+
 }

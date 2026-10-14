@@ -77,9 +77,11 @@ void Renderer::DrawEntity(const Scene* scene, Entity entity,
         const Shader* baseShader = mat ? p_materialSystem->GetShader(mat->shaderID) : nullptr;
         const Shader* shader = baseShader ? baseShader : solidShader.get();
         shader->Use();
-        shader->setVec3f("albedo",mat->albedo);
-        shader->setFloat("metallic",mat->metallic);
-        shader->setFloat("roughness",mat->roughness);
+        if (!p_scene->TryGetComponent<comp::LightComponent>(entity)) {
+            shader->setVec3f("albedo",mat->albedo);
+            shader->setFloat("metallic",mat->metallic);
+            shader->setFloat("roughness",mat->roughness);
+        }
         shader->setMat4f("model", p_transformSystem->GetWorldTransform(entity));
     }
     else {
