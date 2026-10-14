@@ -91,6 +91,7 @@ void UIManager::RenderAddMenu() {
             if (ImGui::MenuItem("Cylinder")) AddPrimitive(PrimitiveType::Cylinder);
             if (ImGui::MenuItem("Cone")) AddPrimitive(PrimitiveType::Cone);
             if (ImGui::MenuItem("Empty")) AddEmpty();
+            if (ImGui::MenuItem("Light")) AddLight();
             ImGui::EndMenu();
         }
         ImGui::EndMainMenuBar();
@@ -203,7 +204,13 @@ void HierarchyPanel::Draw() {
             ImGui::EndDragDropTarget();
         }
     }
-    ApplyDeletion(m_pendingDelete);
+    if (!m_pendingDelete.empty()) {
+        std::vector<Entity> toDelete = std::move(m_pendingDelete);
+        m_pendingDelete.clear();
+        ApplyDeletion(toDelete);
+        m_ctx.p_selectionManager->ClearSelection();
+        m_renaming.reset();
+    }
 
     ImGui::End();
 }
@@ -429,4 +436,19 @@ void HierarchyPanel::ApplyDeletion(const std::vector<Entity>& entities) {
     for (Entity root : deletionRoots) {
         DestroyEntityTree(m_ctx, root);
     }
+}
+
+void UIManager::AddLight() {
+    Entity entity = m_ctx.p_scene->CreateEntity();
+    comp::LightComponent lComp;
+    comp::PrimitiveComponent pComp;
+    comp::
+    pComp.type = PrimitiveType::Sphere;
+    comp::MeshComponent mComp;
+    mComp.meshID = m_ctx.p_meshSystem->AddPrimitive(pComp.type,pComp.rings,pComp.segments,pComp.radius,pComp.height);
+    m_ctx.p_transformSystem->AddTransform(entity);
+    m_ctx.p_scene->InsertComponent(entity,lComp);
+    m_ctx.p_scene->InsertComponent(entity,pComp);
+    m_ctx.p_scene->InsertComponent(entity,mComp);
+
 }

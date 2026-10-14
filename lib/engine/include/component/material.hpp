@@ -5,7 +5,7 @@
 struct Material {
     AssetHandle shaderID;
     AssetHandle textureID;
-    mathpp::vec3f albedo{1.0f,2.0f,0.0f};
+    mathpp::vec3f albedo{0.8f,0.8f,0.8f};
     float metallic{0.2f};
     float roughness{1.0f};
 

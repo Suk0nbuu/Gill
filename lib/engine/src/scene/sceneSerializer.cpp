@@ -7,6 +7,7 @@
 #include "nlohmann/json.hpp"
 #include <unordered_map>
 #include <fstream>
+#include <cmath>
 
 using json = nlohmann::json;
 
@@ -98,7 +99,7 @@ bool ReadFloats(const json& obj, const char* key, float (&out)[N], std::string& 
 
     // primitive
 
-    if (entity.contains("primitive") || entity["primitive"].is_object()) {
+    if (entity.contains("primitive") && entity["primitive"].is_object())  {
         const json& prim = entity["primitive"];
 
         std::string typeName;
@@ -264,7 +265,6 @@ bool SceneSerializer::Save(const std::filesystem::path& path, std::string& error
     std::unordered_map<Entity, int> entityToId;
     std::vector<Entity> saved;
     for (Entity e : p_scene->GetLivingEntities()) {
-        if (!p_scene->TryGetComponent<comp::PrimitiveComponent>(e)) { ++skipped; continue; }
         entityToId.emplace(e, static_cast<int>(saved.size()));
         saved.push_back(e);
     }

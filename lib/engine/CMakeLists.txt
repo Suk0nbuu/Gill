@@ -95,6 +95,8 @@ add_library(engine STATIC
         include/core/system/entity/entityOps.hpp
         src/core/system/entity/entityOps.cpp
         include/editor/registry/componentDescriptor.hpp
+        include/editor/ui/uiComponent/light.hpp
+        src/editor/ui/uiComponent/light.cpp
 
 
 )

@@ -8,6 +8,7 @@
 #include "core/system/material/material.hpp"
 #include "uiComponent/mesh.hpp"
 #include "uiComponent/material.hpp"
+#include "uiComponent/light.hpp"
 #include <vector>
 #include "scene/scene.hpp"
 #include "core/component/event/event.hpp"
@@ -16,6 +17,7 @@ namespace {
     void RegisterBuiltinComponents(ComponentRegistry& r) {
         r.Register({ "Mesh",     HasMesh,     DrawMeshInspector,     MeshAddMenu,     RemoveMesh });
         r.Register({ "Material", HasMaterial, DrawMaterialInspector, MaterialAddMenu, RemoveMaterialComponent, "Mesh" });
+        r.Register({"Light",HasLight,DrawLightInspector,LightAddMenu,RemoveLightComponent,"Material"});
     }
 }
 
@@ -116,7 +118,7 @@ private:
     ComponentRegistry m_registry;
     void AddPrimitive(PrimitiveType type);
     void AddEmpty(std::optional<Entity> parent = std::nullopt);
-    void AddSunlight(Scene* scene);
+    void AddLight();
     ImGuiIO* p_io_ptr;
 
 
