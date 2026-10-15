@@ -1,6 +1,7 @@
 #include "scene/sceneSerializer.hpp"
 #include "core/system/hierarchy/hierarchy.hpp"
 #include "core/system/transform/transform.hpp"
+#include "core/system/material/material.hpp"
 #include "magic_enum.hpp"
 #include "core/system/mesh/mesh.hpp"
 #include <algorithm>
@@ -50,6 +51,21 @@ bool ReadFloats(const json& obj, const char* key, float (&out)[N], std::string& 
             tmp[i] = arr[i].get<float>();
         }
         std::copy(tmp, tmp + N, out);          // only reached if every element passed
+        return true;
+    }
+
+    bool ReadOptionalString(const json& obj, const char* key, std::string& out, std::string& error) {
+        auto it = obj.find(key);
+        if (it == obj.end() || it->is_null()) return true;          // missing/null = leave default
+        if (!it->is_string()) { error = std::string("'") + key + "' must be a string or null"; return false; }
+        out = it->get<std::string>();
+        return true;
+    }
+
+    bool IsSafeRelativePath(const std::string& s) {
+        std::filesystem::path p(s);
+        if (p.is_absolute() || p.has_root_name()) return false;
+        for (const auto& part : p) if (part == "..") return false;
         return true;
     }
 
@@ -123,6 +139,26 @@ bool ReadFloats(const json& obj, const char* key, float (&out)[N], std::string& 
         local.hasMesh = false;
         }
 
+        if (entity.contains("material")) {
+            if (!entity["material"].is_object()) { error = "'material' must be an object"; return false; }
+            const json& m = entity["material"];
+            MaterialData d;
+            if (!Read(m, "metallic",  d.metallic,  error)) return false;
+            if (!Read(m, "roughness", d.roughness, error)) return false;
+            if (!ReadFloats(m, "albedo", d.albedo, error)) return false;
+            if (d.metallic  < 0.f || d.metallic  > 1.f) { error = "metallic out of range [0,1]";  return false; }
+            if (d.roughness < 0.f || d.roughness > 1.f) { error = "roughness out of range [0,1]"; return false; }
+            for (float c : d.albedo) if (!(c >= 0.f && c <= 16.f)) { error = "albedo out of range [0,16]"; return false; }
+
+            if (!ReadOptionalString(m, "texture", d.texture, error)) return false;
+            if (!ReadOptionalString(m, "shader",  d.shader,  error)) return false;
+            if (!d.texture.empty() && !IsSafeRelativePath(d.texture)) { error = "texture path must be relative and stay inside the project"; return false; }
+            if (d.shader.rfind("builtin:", 0) != 0 && !IsSafeRelativePath(d.shader)) { error = "shader must be 'builtin:<name>' or a safe relative path"; return false; }
+
+            local.hasMaterial = true;
+            local.mat = d;
+        }
+
     out = local;
     return true;
 }
@@ -130,11 +166,12 @@ bool ReadFloats(const json& obj, const char* key, float (&out)[N], std::string& 
 
 
 
-SceneSerializer::SceneSerializer(Scene *scene, TransformSystem *transformSystem, Hierarchy *hierarchy, MeshSystem *meshSystem) {
+SceneSerializer::SceneSerializer(Scene *scene, TransformSystem *transformSystem, Hierarchy *hierarchy, MeshSystem *meshSystem,MaterialSystem* materialSystem) {
     p_hierarchy = hierarchy;
     p_transformSystem = transformSystem;
     p_meshSystem = meshSystem;
     p_scene = scene;
+    p_materialSystem = materialSystem;
 }
 
 bool SceneSerializer::Parse(const std::string& text, std::vector<Entry>& out, std::string& error) {
@@ -226,6 +263,23 @@ bool SceneSerializer::Apply(const std::vector<Entry> &entries,std::string& error
             p_scene->InsertComponent(ent,meshComp);
             p_scene->InsertComponent(ent,e.prim);
         }
+        if (e.hasMaterial) {
+            Material m;
+            m.albedo    = {e.mat.albedo[0], e.mat.albedo[1], e.mat.albedo[2]};
+            m.metallic  = e.mat.metallic;
+            m.roughness = e.mat.roughness;
+
+            if (e.mat.shader == "builtin:brdf")        m.shaderID = p_materialSystem->GetDefaultShader();
+            else if (e.mat.shader.rfind("builtin:", 0) == 0) { error = "unknown builtin shader: " + e.mat.shader; return false; }
+            else                                       m.shaderID = p_materialSystem->GetShaderByKey(e.mat.shader);   // later: graph files
+
+            if (!e.mat.texture.empty())
+                m.textureID = p_materialSystem->LoadTextureFile(e.mat.texture);   // invalid handle on failure -> fallBackTexture at draw
+
+            comp::MaterialComponent mc;
+            mc.materialID = p_materialSystem->RegisterMaterial(std::move(m));
+            p_scene->InsertComponent(ent, mc);
+        }
 
         if (!e.name.empty()) {
             comp::NameComponent nameComp;
@@ -233,6 +287,7 @@ bool SceneSerializer::Apply(const std::vector<Entry> &entries,std::string& error
             p_scene->InsertComponent(ent, nameComp);
         }
     }
+
 
     for (size_t i = 0; i < entries.size(); ++i) {
         const Entry& e = entries[i];
@@ -291,6 +346,7 @@ bool SceneSerializer::Save(const std::filesystem::path& path, std::string& error
         const comp::TransformComponent& tComp = p_transformSystem->GetTransform(e);
         const comp::PrimitiveComponent* pComp = p_scene->TryGetComponent<comp::PrimitiveComponent>(e);
         const comp::NameComponent* nComp = p_scene->TryGetComponent<comp::NameComponent>(e);
+        const comp::MaterialComponent* mComp = p_scene->TryGetComponent<comp::MaterialComponent>(e);
         item["transform"] = {{"pos",{tComp.position.x,tComp.position.y,tComp.position.z}},{"rot",{tComp.rotation.w,tComp.rotation.x,tComp.rotation.y,tComp.rotation.z}},{"scale",{tComp.scale.x,tComp.scale.y,tComp.scale.z}}};
         if (pComp) {
             item["primitive"] = {{"type",std::string(magic_enum::enum_name(pComp->type))},{"rings",pComp->rings},{"segments",pComp->segments},{"height",pComp->height},{"radius",pComp->radius}};
@@ -298,6 +354,12 @@ bool SceneSerializer::Save(const std::filesystem::path& path, std::string& error
         }
         if (nComp) {
             item["name"] = nComp->name;
+        }
+        if (mComp) {
+            std::string shader;
+            const auto& mat = p_materialSystem->GetMaterial(mComp->materialID);
+            if (mat->shaderID == p_materialSystem->GetDefaultShader()) shader = "builtin:brdf";
+            item["material"] = {{"shader",shader},{"texture",},{"albedo",{mat->albedo.x,mat->albedo.y,mat->albedo.z}},{"metallic",mat->metallic},{"roughness",mat->metallic}};
         }
 
         entities.push_back(std::move(item));

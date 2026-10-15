@@ -11,6 +11,14 @@
 class TransformSystem;
 class Hierarchy;
 class MeshSystem;
+class MaterialSystem;
+struct MaterialData {
+    std::string shader = "builtin:brdf";
+    std::string texture;                    // empty = none
+    float albedo[3]{0.8f, 0.8f, 0.8f};
+    float metallic = 0.2f, roughness = 1.0f;
+};
+
 
 struct Entry {
     int id;
@@ -20,14 +28,19 @@ struct Entry {
     mathpp::quatf rot;
     mathpp::vec3f scale;
     comp::PrimitiveComponent prim;
+    comp::LightComponent light;
+    MaterialData mat;
     bool hasMesh = false;
+    bool hasMaterial = false;
+    bool hasLight = false;
 };
+
 
 
 
 class SceneSerializer {
 public:
-    SceneSerializer(Scene* scene, TransformSystem* transforms, Hierarchy* hierarchy, MeshSystem* meshes);
+    SceneSerializer(Scene* scene, TransformSystem* transforms, Hierarchy* hierarchy, MeshSystem* meshes, MaterialSystem* materialSystem);
 
 
     bool Save(const std::filesystem::path& path, std::string& error, int& skipped) const;
@@ -40,8 +53,9 @@ private:
 
 
 
-    Scene*           p_scene;
+    Scene* p_scene;
     TransformSystem* p_transformSystem;
-    Hierarchy*       p_hierarchy;
-    MeshSystem*      p_meshSystem;
+    Hierarchy* p_hierarchy;
+    MeshSystem* p_meshSystem;
+    MaterialSystem* p_materialSystem;
 };

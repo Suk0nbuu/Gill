@@ -71,13 +71,13 @@ App::~App() = default;
 
 bool App::LoadScene(std::string& error) {
     SceneSerializer ser(up_scene.get(), up_engine->GetTransformSystem(),
-                        up_engine->GetHierarchy(), up_engine->GetMeshSystem());
+                        up_engine->GetHierarchy(), up_engine->GetMeshSystem(),up_engine->GetMaterialSystem());
     return ser.Load(m_project->ScenePath(), error);
 }
 
 void App::SaveScene() {
     SceneSerializer ser(up_scene.get(), up_engine->GetTransformSystem(),
-                        up_engine->GetHierarchy(), up_engine->GetMeshSystem());
+                        up_engine->GetHierarchy(), up_engine->GetMeshSystem(),up_engine->GetMaterialSystem());
     std::string err; int skipped = 0;
     if (!ser.Save(m_project->ScenePath(), err, skipped)) { m_errorPopup = "Save failed: " + err; return; }
     m_dirty = false;

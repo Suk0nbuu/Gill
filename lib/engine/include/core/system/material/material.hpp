@@ -4,6 +4,7 @@
 #include "render/shader/shader.hpp"
 #include "render/texture/texture.hpp"
 #include <string>
+#include <unordered_map>
 
 class MaterialSystem {
 public:
@@ -11,6 +12,7 @@ public:
     [[nodiscard]]const Material* GetMaterial(AssetHandle handle) const;
     [[nodiscard]] Material* GetMaterial(AssetHandle handle);
     [[nodiscard]] AssetHandle GetDefaultShader();
+    [[nodiscard]] AssetHandle GetShaderByKey(const std::string& key);
     [[nodiscard]]bool HasMaterial(AssetHandle handle) const;
     AssetHandle RegisterMaterial(Material&& material);
     void RemoveMaterial(AssetHandle handle);
@@ -32,5 +34,7 @@ private:
     AssetManager<Shader> m_shaderManager;
     AssetManager<Texture> m_textureManager;
     AssetHandle m_defaultBRDF;
+
+    std::unordered_map<std::string, AssetHandle> m_shaders;
 
 };

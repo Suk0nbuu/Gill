@@ -64,6 +64,7 @@ void UIManager::AddPrimitive(PrimitiveType type) {
     comp::MeshComponent meshComp;
     comp::MaterialComponent matComp;
     Material mat;
+    mat.shaderID = m_ctx.p_materialSystem->GetDefaultShader();
     matComp.materialID = m_ctx.p_materialSystem->RegisterMaterial(std::move(mat));
 
     meshComp.meshID = m_ctx.p_meshSystem->AddPrimitive(prim.type, prim.rings, prim.segments, prim.radius, prim.height);
@@ -73,6 +74,7 @@ void UIManager::AddPrimitive(PrimitiveType type) {
     m_ctx.p_scene->InsertComponent(entity, meshComp);
     m_ctx.p_scene->InsertComponent(entity, prim);
     m_ctx.p_scene->InsertComponent(entity,matComp);
+
 }
 
 void UIManager::RenderAddMenu() {

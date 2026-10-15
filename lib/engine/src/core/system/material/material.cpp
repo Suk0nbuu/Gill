@@ -65,6 +65,11 @@ AssetHandle MaterialSystem::GetDefaultShader()  {
    return m_defaultBRDF;
 }
 
+AssetHandle MaterialSystem::GetShaderByKey(const std::string &key) {
+    if (m_shaders.contains(key)) {
+        return m_shaders[key];
+    }
+}
 
 Material* MaterialSystem::GetMaterial(AssetHandle id) {
     if (m_materialManager.Has(id)) {
