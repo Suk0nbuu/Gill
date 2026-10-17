@@ -90,6 +90,7 @@ MaterialSystem::MaterialSystem() {
         {"albedo",    PropType::Color3, mathpp::vec3f{0.8f,0.8f,0.8f}},
         {"metallic",  PropType::Float,  0.2f, 0.0f,  1.0f},
         {"roughness", PropType::Float,  1.0f, 0.05f, 1.0f},
+        {"albedoTex", PropType::Texture, TextureRef{}},
     }};
     m_defs["builtin:emission"] = {"asset/shader/pbr/brdf/brdfVert.glsl","asset/shader/pbr/emission/emissionFrag.glsl",{
     {"color",PropType::Color3,mathpp::vec3f{1.0f,1.0f,1.0f}},
@@ -115,4 +116,13 @@ void MaterialSystem::SetShader(Material &m, const std::string &key) {
         for (const auto& op : m.props)
             if (op.name == np.name && op.value.index() == np.value.index()) { np.value = op.value; break; }
     m.shaderKey = key; m.shaderID = fresh.shaderID; m.props = std::move(fresh.props);
+}
+
+AssetHandle MaterialSystem::GetOrLoadTexture(const std::string& rel) {
+    if (auto it = m_textureByPath.find(rel); it != m_textureByPath.end()) return it->second;
+    const std::filesystem::path full = m_projectRoot / rel;
+    if (!std::filesystem::is_regular_file(full)) return AssetHandle{};   // don't cache failures
+    AssetHandle h = LoadTextureFile(full.string());
+    m_textureByPath.emplace(rel, h);
+    return h;
 }

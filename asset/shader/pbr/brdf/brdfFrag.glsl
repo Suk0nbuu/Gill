@@ -6,7 +6,9 @@
 #include "../../core/light.glsl"
 in vec3 normals;
 in vec3 fragPos;
-
+in vec2 vUV;
+uniform sampler2D albedoTex;
+uniform int has_albedoTex = 0;
 
 uniform vec3 albedo;
 
@@ -84,8 +86,10 @@ vec3 BRDFShader(vec3 albedo, vec3 normal, vec3 view, vec3 light, float rough, fl
 void main() {
     vec3 N = normalize(normals);
     vec3 V = normalize(cameraPos.xyz - fragPos);
-
-    vec3 color = vec3(0.03) * albedo;                 // ambient floor, so unlit sides aren't black
+    vec3 baseColor = albedo;
+    if (has_albedoTex != 0)
+    baseColor *= pow(texture(albedoTex, vUV).rgb, vec3(2.2));   // sRGB -> linear
+    vec3 color = vec3(0.03) * baseColor;
     for (int i = 0; i < lightCount; ++i) {
         LightSample s = SampleLight(i, fragPos);
         color += BRDFShader(albedo, N, V, s.L, roughness, metallic) * s.radiance;

@@ -126,10 +126,16 @@ void Renderer::UploadLight() {
 }
 
 void Renderer::UploadMaterial(const Material& m, const Shader& s) const {
-    for (const auto& p : m.props)
+    int slot = 0;
+    for (const auto& p : m.props) {
         std::visit([&](const auto& v) {
             using T = std::decay_t<decltype(v)>;
-            if constexpr (std::is_same_v<T, float>)               s.setFloat(p.name, v);
-            else if constexpr (std::is_same_v<T, mathpp::vec3f>)  s.setVec3f(p.name, v);
+            if constexpr (std::is_same_v<T, float>)              s.setFloat(p.name, v);
+            else if constexpr (std::is_same_v<T, mathpp::vec3f>) s.setVec3f(p.name, v);
+            else if constexpr (std::is_same_v<T, TextureRef>) {
+                const Texture* tex = p_materialSystem->GetTexture(v.handle);
+                s.setInt("has_" + p.name, tex ? 1 : 0);
+            if (tex) { tex->Bind(slot); s.setInt(p.name, slot++); }}
         }, p.value);
+    }
 }

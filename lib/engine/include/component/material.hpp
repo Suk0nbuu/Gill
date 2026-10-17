@@ -4,9 +4,12 @@
 #include <variant>
 #include <vector>
 #include "mathpp.hpp"
-
-enum class PropType { Float, Color3 };                  // Texture later
-using PropValue = std::variant<float, mathpp::vec3f>;
+struct TextureRef {
+    std::string path;
+    AssetHandle handle;
+};
+enum class PropType { Float, Color3, Texture };                  // Texture later
+using PropValue = std::variant<float, mathpp::vec3f,TextureRef>;
 
 struct PropertyDecl { std::string name; PropType type; PropValue def; float min = 0, max = 1; };
 struct ShaderDef {

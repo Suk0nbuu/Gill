@@ -9,7 +9,9 @@ uniform mat4 model;
 
 out vec3 normals;
 out vec3 fragPos;
+out vec2 vUV;
 void main() {
+    vUV = UV;
     gl_Position = projection * view * model * vec4(position, 1.0f);
     normals = mat3(transpose(inverse(model))) * anormals;   // same as celVert; optimize later
     fragPos = vec3(model * vec4(position, 1.0f));

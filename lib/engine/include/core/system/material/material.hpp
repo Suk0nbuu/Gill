@@ -4,6 +4,7 @@
 #include "render/shader/shader.hpp"
 #include "render/texture/texture.hpp"
 #include <string>
+#include <filesystem>
 #include <unordered_map>
 
 
@@ -36,11 +37,17 @@ public:
     AssetHandle LoadTextureFile(const std::string& path);
     void RemoveTexture(AssetHandle handle);
 
+    void SetProjectRoot(std::filesystem::path root);            // call on project open; clear on close
+    AssetHandle GetOrLoadTexture(const std::string& relPath);   // invalid handle if missing
+    void ClearProjectTextures();                                // call on project close
+
 
 private:
     AssetManager<Material> m_materialManager;
     AssetManager<Shader> m_shaderManager;
     AssetManager<Texture> m_textureManager;
+    std::filesystem::path m_projectRoot;
+    std::unordered_map<std::string, AssetHandle> m_textureByPath;
 
 
 

@@ -149,9 +149,18 @@ bool ReadFloats(const json& obj, const char* key, float (&out)[N], std::string& 
                     if (v.is_number()) {
                         d.props.emplace_back(name,v.get<float>());
                     }
+                    else if (v.is_string()) {
+                        const std::string path = v.get<std::string>();
+                        if (path.find('\\') != std::string::npos) { error = "texture path must use forward slashes"; return false; }
+                        if (!path.empty() && !IsSafeRelativePath(path)) { error = "texture path is not safe: " + path; return false; }
+                        d.props.emplace_back(name, TextureRef{path, AssetHandle{}});   // handle is resolved later, in Apply
+                    }
+                    else if (v.is_null()) {
+                        d.props.emplace_back(name, TextureRef{});                       // no texture
+                    }
                     else if (v.is_array() && v.size() == 3 && std::all_of(v.begin(), v.end(), [](const json& x){ return x.is_number(); })) {
                         d.props.emplace_back(name, mathpp::vec3f{v[0].get<float>(), v[1].get<float>(), v[2].get<float>()});
-                    } else { error = "property '" + name + "' must be a number or [r,g,b]"; return false; }
+                    } else { error = "property '" + name + "' prop value must be a number, [r,g,b], a path string, or null "; return false; }
                 }
             }
 
@@ -312,6 +321,10 @@ bool SceneSerializer::Apply(const std::vector<Entry> &entries,std::string& error
             for (const auto& [name, value] : e.mat.props)
                 for (auto& p : mat.props)
                     if (p.name == name && p.value.index() == value.index()) { p.value = value; break; }
+
+            for (auto& p : mat.props)
+                if (auto* t = std::get_if<TextureRef>(&p.value); t && !t->path.empty())
+                    t->handle = p_materialSystem->GetOrLoadTexture(t->path);
             if (!e.mat.texture.empty()) mat.textureID = p_materialSystem->LoadTextureFile(e.mat.texture);
             comp::MaterialComponent mc;
             mc.materialID = p_materialSystem->RegisterMaterial(std::move(mat));
@@ -403,6 +416,7 @@ bool SceneSerializer::Save(const std::filesystem::path& path, std::string& error
                     std::visit([&](const auto& v) {
                         using T = std::decay_t<decltype(v)>;
                         if constexpr (std::is_same_v<T, float>) props[p.name] = v;
+                        else if constexpr (std::is_same_v<T, TextureRef>) props[p.name] = v.path.empty() ? json(nullptr) : json(v.path);
                         else                                    props[p.name] = {v.x, v.y, v.z};
                     }, p.value);
                 m["props"] = std::move(props);
