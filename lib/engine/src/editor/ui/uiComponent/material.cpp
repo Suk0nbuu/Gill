@@ -11,8 +11,7 @@ bool HasMaterial(const EngineContext& ctx, Entity e) {
 void MaterialAddMenu(EditorContext& ctx, Entity e) {
     if (!ImGui::MenuItem("Material")) return;
     if (HasMaterial(ctx, e)) return;
-    Material mat;
-    mat.shaderID = ctx.p_materialSystem->GetDefaultShader();
+    Material mat = ctx.p_materialSystem->MakeMaterial("builtin:brdf");
     comp::MaterialComponent comp;
     comp.materialID = ctx.p_materialSystem->RegisterMaterial(std::move(mat));
     ctx.p_scene->InsertComponent(e, comp);

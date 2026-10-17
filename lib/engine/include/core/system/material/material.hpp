@@ -18,6 +18,7 @@ public:
     [[nodiscard]] AssetHandle GetDefaultShader();
     [[nodiscard]] AssetHandle GetShaderByKey(const std::string& key);
     [[nodiscard]]bool HasMaterial(AssetHandle handle) const;
+    const ShaderDef* GetShaderDef(const std::string& key) const;
     AssetHandle RegisterMaterial(Material&& material);
     void RemoveMaterial(AssetHandle handle);
 

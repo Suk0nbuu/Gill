@@ -143,12 +143,29 @@ bool ReadFloats(const json& obj, const char* key, float (&out)[N], std::string& 
             if (!entity["material"].is_object()) { error = "'material' must be an object"; return false; }
             const json& m = entity["material"];
             MaterialData d;
-            if (!Read(m, "metallic",  d.metallic,  error)) return false;
-            if (!Read(m, "roughness", d.roughness, error)) return false;
-            if (!ReadFloats(m, "albedo", d.albedo, error)) return false;
-            if (d.metallic  < 0.f || d.metallic  > 1.f) { error = "metallic out of range [0,1]";  return false; }
-            if (d.roughness < 0.f || d.roughness > 1.f) { error = "roughness out of range [0,1]"; return false; }
-            for (float c : d.albedo) if (!(c >= 0.f && c <= 16.f)) { error = "albedo out of range [0,16]"; return false; }
+            if (m.contains("props")) {
+                if (!m["props"].is_object()) {error = "prop must be an object"; return false;}
+                for (auto& [name,v]:m["props"].items()) {
+                    if (v.is_number()) {
+                        d.props.emplace_back(name,v.get<float>());
+                    }
+                    else if (v.is_array()) {
+                        d.props.emplace_back(name,mathpp::vec3f(v[0].get<float>(),v[1].get<float>(),v[2].get<float>()));
+                    }
+                    else {
+                        error = "prop value must be a float or a vec3";
+                        return false;
+                    }
+                }
+            }
+            else {
+                float albedo[3], roughness, metallic;
+                if (!ReadFloats(m,"albedo",  albedo,  error)|| !Read(m,"metallic",metallic,error)|| !Read(m,"roughness",roughness,error)) return false;
+                d.props.emplace_back("albedo",mathpp::vec3f(albedo[0],albedo[1],albedo[2]));
+                d.props.emplace_back("roughness",roughness);
+                d.props.emplace_back("metallic",metallic);
+            }
+
 
             if (!ReadOptionalString(m, "texture", d.texture, error)) return false;
             if (!ReadOptionalString(m, "shader",  d.shader,  error)) return false;
@@ -191,6 +208,7 @@ bool ReadFloats(const json& obj, const char* key, float (&out)[N], std::string& 
     return true;
 }
 }
+
 
 
 
@@ -292,20 +310,17 @@ bool SceneSerializer::Apply(const std::vector<Entry> &entries,std::string& error
             p_scene->InsertComponent(ent,e.prim);
         }
         if (e.hasMaterial) {
-            Material m;
-            m.albedo    = {e.mat.albedo[0], e.mat.albedo[1], e.mat.albedo[2]};
-            m.metallic  = e.mat.metallic;
-            m.roughness = e.mat.roughness;
-
-            if (e.mat.shader == "builtin:brdf")        m.shaderID = p_materialSystem->GetDefaultShader();
-            else if (e.mat.shader.rfind("builtin:", 0) == 0) { error = "unknown builtin shader: " + e.mat.shader; return false; }
-            else                                       m.shaderID = p_materialSystem->GetShaderByKey(e.mat.shader);   // later: graph files
-
-            if (!e.mat.texture.empty())
-                m.textureID = p_materialSystem->LoadTextureFile(e.mat.texture);   // invalid handle on failure -> fallBackTexture at draw
-
+             auto mat = p_materialSystem->MakeMaterial(e.mat.shader);
+            const ShaderDef * shaderdef = p_materialSystem->GetShaderDef(e.mat.shader);
+            if (!shaderdef) {error = "unsuported shader definition" + e.mat.shader; return false;}
+            for (const auto& [name,value] : e.mat.props) {
+                for (auto p : mat.props) {
+                    if (p.name == name && p.value.index() == value.index()) {p.value = value;}
+                }
+            }
+            if (!e.mat.texture.empty()) p_materialSystem->LoadTextureFile(e.mat.texture);
             comp::MaterialComponent mc;
-            mc.materialID = p_materialSystem->RegisterMaterial(std::move(m));
+            mc.materialID = p_materialSystem->RegisterMaterial(std::move(mat));
             p_scene->InsertComponent(ent, mc);
         }
         if (e.hasLight) p_scene->InsertComponent(ent, e.light);
@@ -388,11 +403,15 @@ bool SceneSerializer::Save(const std::filesystem::path& path, std::string& error
             const Material* mat = p_materialSystem->GetMaterial(mComp->materialID);
             if (mat) {
                 json m;
-                m["shader"] = "builtin:brdf";
-                m["albedo"] = {mat->albedo.x, mat->albedo.y, mat->albedo.z};
-                m["metallic"]  = mat->metallic;
-                m["roughness"] = mat->roughness;
-                item["material"] = std::move(m);
+                json props = json::object();
+                props["shader"] = mat->shaderKey.empty() ? "builtin:brdf" : mat->shaderKey;
+                for (auto& p : mat->props) {
+                    std::visit([&](const auto& v) {
+                        using T = std::decay_t<decltype(v)>;
+                        if constexpr (std::is_same_v<T,float>) props[p.name] = v;
+                        else props[p.name] = {v.x,v.y,v.z};
+                    },p.value);
+                }
             }
         }
 

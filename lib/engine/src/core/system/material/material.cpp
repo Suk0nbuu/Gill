@@ -96,3 +96,8 @@ MaterialSystem::MaterialSystem() {
         {"roughness", PropType::Float,  1.0f, 0.05f, 1.0f},
     }};
 }
+
+const ShaderDef *MaterialSystem::GetShaderDef(const std::string &key) const {
+    auto it = m_defs.find(key);
+    return it == m_defs.end() ? nullptr : &it->second;
+}

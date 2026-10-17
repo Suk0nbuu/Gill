@@ -1,12 +1,9 @@
 #pragma once
-
-
 #include <filesystem>
 #include <string>
 #include <vector>
+#include <utility>
 #include "mathpp.hpp"
-
-
 #include "scene/scene.hpp"
 class TransformSystem;
 class Hierarchy;
@@ -14,9 +11,8 @@ class MeshSystem;
 class MaterialSystem;
 struct MaterialData {
     std::string shader = "builtin:brdf";
-    std::string texture;                    // empty = none
-    float albedo[3]{0.8f, 0.8f, 0.8f};
-    float metallic = 0.2f, roughness = 1.0f;
+    std::string texture;
+    std::vector<std::pair<std::string, PropValue>> props;
 };
 
 

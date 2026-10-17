@@ -63,8 +63,7 @@ void UIManager::AddPrimitive(PrimitiveType type) {
 
     comp::MeshComponent meshComp;
     comp::MaterialComponent matComp;
-    Material mat;
-    mat.shaderID = m_ctx.p_materialSystem->GetDefaultShader();
+    Material mat = m_ctx.p_materialSystem->MakeMaterial("builtin:brdf");
     matComp.materialID = m_ctx.p_materialSystem->RegisterMaterial(std::move(mat));
 
     meshComp.meshID = m_ctx.p_meshSystem->AddPrimitive(prim.type, prim.rings, prim.segments, prim.radius, prim.height);
