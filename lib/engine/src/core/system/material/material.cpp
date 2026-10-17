@@ -65,10 +65,13 @@ AssetHandle MaterialSystem::GetDefaultShader()  {
    return m_defaultBRDF;
 }
 
-AssetHandle MaterialSystem::GetShaderByKey(const std::string &key) {
-    if (m_shaders.contains(key)) {
-        return m_shaders[key];
-    }
+AssetHandle MaterialSystem::GetShaderByKey(const std::string& key) {
+    if (auto it = m_handles.find(key); it != m_handles.end()) return it->second;
+    auto d = m_defs.find(key);
+    if (d == m_defs.end()) return AssetHandle{};            // unknown key: invalid, never fall off the end
+    AssetHandle h = LoadShaderFile(d->second.vert, d->second.frag);
+    m_handles.emplace(key, h);
+    return h;
 }
 
 Material* MaterialSystem::GetMaterial(AssetHandle id) {
@@ -76,4 +79,20 @@ Material* MaterialSystem::GetMaterial(AssetHandle id) {
         return m_materialManager.Get(id);
     }
     return nullptr;
+}
+
+Material MaterialSystem::MakeMaterial(const std::string& key) {
+    Material m; m.shaderKey = key; m.shaderID = GetShaderByKey(key);
+    if (auto d = m_defs.find(key); d != m_defs.end())
+        for (const auto& decl : d->second.props) m.props.push_back({decl.name, decl.def});
+    return m;
+}
+
+
+MaterialSystem::MaterialSystem() {
+    m_defs["builtin:brdf"] = { "asset/shader/pbr/brdf/brdfVert.glsl", "asset/shader/pbr/brdf/brdfFrag.glsl", {
+        {"albedo",    PropType::Color3, mathpp::vec3f{0.8f,0.8f,0.8f}},
+        {"metallic",  PropType::Float,  0.2f, 0.0f,  1.0f},
+        {"roughness", PropType::Float,  1.0f, 0.05f, 1.0f},
+    }};
 }

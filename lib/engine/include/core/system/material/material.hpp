@@ -6,9 +6,13 @@
 #include <string>
 #include <unordered_map>
 
+
+
+
+
 class MaterialSystem {
 public:
-
+    MaterialSystem();
     [[nodiscard]]const Material* GetMaterial(AssetHandle handle) const;
     [[nodiscard]] Material* GetMaterial(AssetHandle handle);
     [[nodiscard]] AssetHandle GetDefaultShader();
@@ -17,7 +21,7 @@ public:
     AssetHandle RegisterMaterial(Material&& material);
     void RemoveMaterial(AssetHandle handle);
 
-
+    Material MakeMaterial(const std::string& key);
     [[nodiscard]]const Shader* GetShader(AssetHandle handle) const;
     [[nodiscard]]bool HasShader(AssetHandle handle) const;
     AssetHandle LoadShaderFile(const std::string& vertPath, const std::string& fragPath);
@@ -29,12 +33,18 @@ public:
     AssetHandle LoadTextureFile(const std::string& path);
     void RemoveTexture(AssetHandle handle);
 
+
 private:
     AssetManager<Material> m_materialManager;
     AssetManager<Shader> m_shaderManager;
     AssetManager<Texture> m_textureManager;
     AssetHandle m_defaultBRDF;
 
-    std::unordered_map<std::string, AssetHandle> m_shaders;
+
+
+    std::unordered_map<std::string, ShaderDef>    m_defs;      // key -> definition
+    std::unordered_map<std::string, AssetHandle>  m_handles;   // key -> loaded shader (lazy)
+
+
 
 };

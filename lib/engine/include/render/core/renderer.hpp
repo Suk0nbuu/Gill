@@ -39,6 +39,7 @@ class Renderer {
     void SetViewportMode(ViewportMode mode);
     ViewportMode GetViewportMode();
 private:
+    void UploadMaterial(const Material& m, const Shader& s) const;
     void UploadSkinningPalette(const Scene* scene, Entity entity, const Shader& shader);
     void UploadLight();
     void UploadCamera(const mathpp::mat4f& view, const mathpp::mat4f& proj, const mathpp::vec3f& camPos);

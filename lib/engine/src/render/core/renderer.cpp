@@ -14,6 +14,8 @@
 #include "render/data/cameraBlock.hpp"
 #include "render/data/lightBlock.hpp"
 #include "render/data/uniform.hpp"
+#include <type_traits>
+
 
 void Renderer::Init(Scene* scene,TransformSystem* transformSystem,MeshSystem* meshSystem,MaterialSystem* materialSystem,ArmatureSystem* armatureSystem) {
     glEnable(GL_DEPTH_TEST);
@@ -77,11 +79,7 @@ void Renderer::DrawEntity(const Scene* scene, Entity entity,
         const Shader* baseShader = mat ? p_materialSystem->GetShader(mat->shaderID) : nullptr;
         const Shader* shader = baseShader ? baseShader : solidShader.get();
         shader->Use();
-        if (!p_scene->TryGetComponent<comp::LightComponent>(entity)) {
-            shader->setVec3f("albedo",mat->albedo);
-            shader->setFloat("metallic",mat->metallic);
-            shader->setFloat("roughness",mat->roughness);
-        }
+        if (mat) UploadMaterial(*mat, *shader);
         shader->setMat4f("model", p_transformSystem->GetWorldTransform(entity));
     }
     else {
@@ -125,4 +123,13 @@ void Renderer::UploadLight() {
     LightBlock lb{};
     up_lightSystem->Gather(p_scene,lb);
     up_lightUBO->Update(&lb, sizeof(lb));
+}
+
+void Renderer::UploadMaterial(const Material& m, const Shader& s) const {
+    for (const auto& p : m.props)
+        std::visit([&](const auto& v) {
+            using T = std::decay_t<decltype(v)>;
+            if constexpr (std::is_same_v<T, float>)               s.setFloat(p.name, v);
+            else if constexpr (std::is_same_v<T, mathpp::vec3f>)  s.setVec3f(p.name, v);
+        }, p.value);
 }

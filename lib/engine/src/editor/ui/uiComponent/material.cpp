@@ -29,11 +29,20 @@ void RemoveMaterialComponent(const EngineContext& ctx, Entity e) {
 bool DrawMaterialInspector(EditorContext& ctx, Entity e) {
     const auto* c = ctx.p_scene->TryGetComponent<comp::MaterialComponent>(e);
     if (!c) return false;
-    Material* mat = (c->materialID != AssetHandle{}) ? ctx.p_materialSystem->GetMaterial(c->materialID) : nullptr;
+    Material* mat = ctx.p_materialSystem->GetMaterial(c->materialID);
     if (!mat) { ImGui::TextDisabled("Material missing"); return false; }
+
     bool changed = false;
-    changed |= ImGui::ColorEdit3("Albedo", &mat->albedo.x);
-    changed |= ImGui::SliderFloat("Metallic", &mat->metallic, 0.0f, 1.0f);
-    changed |= ImGui::SliderFloat("Roughness", &mat->roughness, 0.05f, 1.0f);
+    const ShaderDef* def = ctx.p_materialSystem->GetShaderDef(mat->shaderKey);   // add this getter, nullptr if unknown
+
+    for (auto& p : mat->props) {
+        const PropertyDecl* d = def ? def->Find(p.name) : nullptr;               // Find(): linear search by name
+        const float lo = d ? d->min : 0.0f, hi = d ? d->max : 1.0f;
+
+        if (auto* f = std::get_if<float>(&p.value))
+            changed |= ImGui::SliderFloat(p.name.c_str(), f, lo, hi);
+        else if (auto* v = std::get_if<mathpp::vec3f>(&p.value))
+            changed |= ImGui::ColorEdit3(p.name.c_str(), &v->x);
+    }
     return changed;
 }

@@ -158,6 +158,34 @@ bool ReadFloats(const json& obj, const char* key, float (&out)[N], std::string& 
             local.hasMaterial = true;
             local.mat = d;
         }
+        if (entity.contains("light")) {
+            if (!entity["light"].is_object()) { error = "'light' must be an object"; return false; }
+            const json& l = entity["light"];
+            comp::LightComponent d;
+
+            std::string typeName;
+            if (!Read(l, "type", typeName, error)) return false;
+            auto type = magic_enum::enum_cast<comp::LightType>(typeName);
+            if (!type) { error = "unknown light type: " + typeName; return false; }
+            d.type = *type;
+
+            float color[3];
+            if (!ReadFloats(l, "color", color, error)) return false;
+            if (!Read(l, "intensity", d.intensity, error)) return false;
+            if (!Read(l, "range",     d.range,     error)) return false;
+            if (!Read(l, "spotSize",  d.spotSize,  error)) return false;
+            if (!Read(l, "blend",     d.blend,     error)) return false;
+
+            for (float c : color) if (!(c >= 0.f && c <= 16.f)) { error = "light color out of range [0,16]"; return false; }
+            if (!(d.intensity >= 0.f && d.intensity <= 1000.f)) { error = "intensity out of range [0,1000]"; return false; }
+            if (!(d.range > 0.f && d.range <= 1000.f))          { error = "range out of range (0,1000]";   return false; }
+            if (!(d.spotSize > 0.f && d.spotSize <= 180.f))     { error = "spotSize out of range (0,180]"; return false; }
+            if (!(d.blend >= 0.f && d.blend <= 1.f))            { error = "blend out of range [0,1]";      return false; }
+
+            d.color = {color[0], color[1], color[2]};
+            local.light = d;
+            local.hasLight = true;
+        }
 
     out = local;
     return true;
@@ -280,6 +308,7 @@ bool SceneSerializer::Apply(const std::vector<Entry> &entries,std::string& error
             mc.materialID = p_materialSystem->RegisterMaterial(std::move(m));
             p_scene->InsertComponent(ent, mc);
         }
+        if (e.hasLight) p_scene->InsertComponent(ent, e.light);
 
         if (!e.name.empty()) {
             comp::NameComponent nameComp;
@@ -356,10 +385,26 @@ bool SceneSerializer::Save(const std::filesystem::path& path, std::string& error
             item["name"] = nComp->name;
         }
         if (mComp) {
-            std::string shader;
-            const auto& mat = p_materialSystem->GetMaterial(mComp->materialID);
-            if (mat->shaderID == p_materialSystem->GetDefaultShader()) shader = "builtin:brdf";
-            item["material"] = {{"shader",shader},{"texture",},{"albedo",{mat->albedo.x,mat->albedo.y,mat->albedo.z}},{"metallic",mat->metallic},{"roughness",mat->metallic}};
+            const Material* mat = p_materialSystem->GetMaterial(mComp->materialID);
+            if (mat) {
+                json m;
+                m["shader"] = "builtin:brdf";
+                m["albedo"] = {mat->albedo.x, mat->albedo.y, mat->albedo.z};
+                m["metallic"]  = mat->metallic;
+                m["roughness"] = mat->roughness;
+                item["material"] = std::move(m);
+            }
+        }
+
+        if (const comp::LightComponent* lComp = p_scene->TryGetComponent<comp::LightComponent>(e)) {
+            item["light"] = {
+                {"type",      std::string(magic_enum::enum_name(lComp->type))},
+                {"color",     {lComp->color.x, lComp->color.y, lComp->color.z}},
+                {"intensity", lComp->intensity},
+                {"range",     lComp->range},
+                {"spotSize",  lComp->spotSize},
+                {"blend",     lComp->blend}
+            };
         }
 
         entities.push_back(std::move(item));
