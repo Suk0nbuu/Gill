@@ -1,4 +1,5 @@
 #include "core/system/material/material.hpp"
+#include <algorithm>
 
 const Material *MaterialSystem::GetMaterial(AssetHandle handle) const {
     if (m_materialManager.Has(handle)) {
@@ -58,12 +59,7 @@ AssetHandle MaterialSystem::LoadShaderFile(const std::string &vertPath, const st
     return m_shaderManager.Load(Shader(vertPath, fragPath));
 }
 
-AssetHandle MaterialSystem::GetDefaultShader()  {
-    if (m_defaultBRDF.index == UINT32_MAX) {
-        m_defaultBRDF = LoadShaderFile("asset/shader/pbr/brdf/brdfVert.glsl", "asset/shader/pbr/brdf/brdfFrag.glsl");
-    }
-   return m_defaultBRDF;
-}
+
 
 AssetHandle MaterialSystem::GetShaderByKey(const std::string& key) {
     if (auto it = m_handles.find(key); it != m_handles.end()) return it->second;
@@ -95,9 +91,28 @@ MaterialSystem::MaterialSystem() {
         {"metallic",  PropType::Float,  0.2f, 0.0f,  1.0f},
         {"roughness", PropType::Float,  1.0f, 0.05f, 1.0f},
     }};
+    m_defs["builtin:emission"] = {"asset/shader/pbr/brdf/brdfVert.glsl","asset/shader/pbr/emission/emissionFrag.glsl",{
+    {"color",PropType::Color3,mathpp::vec3f{1.0f,1.0f,1.0f}},
+        {"strength",PropType::Float,1.0f,0.0f,20.0f},
+
+    }};
 }
 
 const ShaderDef *MaterialSystem::GetShaderDef(const std::string &key) const {
     auto it = m_defs.find(key);
     return it == m_defs.end() ? nullptr : &it->second;
+}
+
+std::vector<std::string> MaterialSystem::ShaderKeys() const {
+    std::vector<std::string> k; for (auto& [key, _] : m_defs) k.push_back(key);
+    std::sort(k.begin(), k.end()); return k;
+}
+
+void MaterialSystem::SetShader(Material &m, const std::string &key) {
+    if (!GetShaderDef(key)) return;
+    Material fresh = MakeMaterial(key);
+    for (auto& np : fresh.props)
+        for (const auto& op : m.props)
+            if (op.name == np.name && op.value.index() == np.value.index()) { np.value = op.value; break; }
+    m.shaderKey = key; m.shaderID = fresh.shaderID; m.props = std::move(fresh.props);
 }

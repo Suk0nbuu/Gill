@@ -32,8 +32,14 @@ bool DrawMaterialInspector(EditorContext& ctx, Entity e) {
     if (!mat) { ImGui::TextDisabled("Material missing"); return false; }
 
     bool changed = false;
-    const ShaderDef* def = ctx.p_materialSystem->GetShaderDef(mat->shaderKey);   // add this getter, nullptr if unknown
-
+    const ShaderDef* def = ctx.p_materialSystem->GetShaderDef(mat->shaderKey);
+    if (ImGui::BeginCombo("Shader", mat->shaderKey.c_str())) {
+        for (const auto& k : ctx.p_materialSystem->ShaderKeys())
+            if (ImGui::Selectable(k.c_str(), k == mat->shaderKey) && k != mat->shaderKey) {
+                ctx.p_materialSystem->SetShader(*mat, k); changed = true; break;
+            }
+        ImGui::EndCombo();
+    }
     for (auto& p : mat->props) {
         const PropertyDecl* d = def ? def->Find(p.name) : nullptr;               // Find(): linear search by name
         const float lo = d ? d->min : 0.0f, hi = d ? d->max : 1.0f;

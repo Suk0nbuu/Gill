@@ -15,7 +15,6 @@ public:
     MaterialSystem();
     [[nodiscard]]const Material* GetMaterial(AssetHandle handle) const;
     [[nodiscard]] Material* GetMaterial(AssetHandle handle);
-    [[nodiscard]] AssetHandle GetDefaultShader();
     [[nodiscard]] AssetHandle GetShaderByKey(const std::string& key);
     [[nodiscard]]bool HasMaterial(AssetHandle handle) const;
     const ShaderDef* GetShaderDef(const std::string& key) const;
@@ -28,6 +27,9 @@ public:
     AssetHandle LoadShaderFile(const std::string& vertPath, const std::string& fragPath);
     void RemoveShader(AssetHandle handle);
 
+    std::vector<std::string> ShaderKeys() const;
+    void SetShader(Material& m, const std::string& key);
+
 
     [[nodiscard]]const Texture* GetTexture(AssetHandle handle) const;
     [[nodiscard]]bool HasTexture(AssetHandle handle) const;
@@ -39,7 +41,7 @@ private:
     AssetManager<Material> m_materialManager;
     AssetManager<Shader> m_shaderManager;
     AssetManager<Texture> m_textureManager;
-    AssetHandle m_defaultBRDF;
+
 
 
 
