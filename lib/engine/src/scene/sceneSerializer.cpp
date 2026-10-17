@@ -149,15 +149,12 @@ bool ReadFloats(const json& obj, const char* key, float (&out)[N], std::string& 
                     if (v.is_number()) {
                         d.props.emplace_back(name,v.get<float>());
                     }
-                    else if (v.is_array()) {
-                        d.props.emplace_back(name,mathpp::vec3f(v[0].get<float>(),v[1].get<float>(),v[2].get<float>()));
-                    }
-                    else {
-                        error = "prop value must be a float or a vec3";
-                        return false;
-                    }
+                    else if (v.is_array() && v.size() == 3 && std::all_of(v.begin(), v.end(), [](const json& x){ return x.is_number(); })) {
+                        d.props.emplace_back(name, mathpp::vec3f{v[0].get<float>(), v[1].get<float>(), v[2].get<float>()});
+                    } else { error = "property '" + name + "' must be a number or [r,g,b]"; return false; }
                 }
             }
+
             else {
                 float albedo[3], roughness, metallic;
                 if (!ReadFloats(m,"albedo",  albedo,  error)|| !Read(m,"metallic",metallic,error)|| !Read(m,"roughness",roughness,error)) return false;
@@ -310,15 +307,12 @@ bool SceneSerializer::Apply(const std::vector<Entry> &entries,std::string& error
             p_scene->InsertComponent(ent,e.prim);
         }
         if (e.hasMaterial) {
-             auto mat = p_materialSystem->MakeMaterial(e.mat.shader);
-            const ShaderDef * shaderdef = p_materialSystem->GetShaderDef(e.mat.shader);
-            if (!shaderdef) {error = "unsuported shader definition" + e.mat.shader; return false;}
-            for (const auto& [name,value] : e.mat.props) {
-                for (auto p : mat.props) {
-                    if (p.name == name && p.value.index() == value.index()) {p.value = value;}
-                }
-            }
-            if (!e.mat.texture.empty()) p_materialSystem->LoadTextureFile(e.mat.texture);
+            Material mat = p_materialSystem->MakeMaterial(e.mat.shader);
+            if (!p_materialSystem->GetShaderDef(e.mat.shader)) { error = "unsupported shader: " + e.mat.shader; return false; }
+            for (const auto& [name, value] : e.mat.props)
+                for (auto& p : mat.props)
+                    if (p.name == name && p.value.index() == value.index()) { p.value = value; break; }
+            if (!e.mat.texture.empty()) mat.textureID = p_materialSystem->LoadTextureFile(e.mat.texture);
             comp::MaterialComponent mc;
             mc.materialID = p_materialSystem->RegisterMaterial(std::move(mat));
             p_scene->InsertComponent(ent, mc);
@@ -403,15 +397,16 @@ bool SceneSerializer::Save(const std::filesystem::path& path, std::string& error
             const Material* mat = p_materialSystem->GetMaterial(mComp->materialID);
             if (mat) {
                 json m;
+                m["shader"] = mat->shaderKey.empty() ? "builtin:brdf" : mat->shaderKey;
                 json props = json::object();
-                props["shader"] = mat->shaderKey.empty() ? "builtin:brdf" : mat->shaderKey;
-                for (auto& p : mat->props) {
+                for (const auto& p : mat->props)
                     std::visit([&](const auto& v) {
                         using T = std::decay_t<decltype(v)>;
-                        if constexpr (std::is_same_v<T,float>) props[p.name] = v;
-                        else props[p.name] = {v.x,v.y,v.z};
-                    },p.value);
-                }
+                        if constexpr (std::is_same_v<T, float>) props[p.name] = v;
+                        else                                    props[p.name] = {v.x, v.y, v.z};
+                    }, p.value);
+                m["props"] = std::move(props);
+                item["material"] = std::move(m);
             }
         }
 
