@@ -40,7 +40,7 @@ public:
     void SetProjectRoot(std::filesystem::path root) { m_projectRoot = std::move(root); m_textureByPath.clear(); }
     const std::filesystem::path& GetProjectRoot() const { return m_projectRoot; }
     AssetHandle GetOrLoadTexture(const std::string& relPath);   // invalid handle if missing
-    void ClearProjectTextures();                                // call on project close
+    void ClearProjectTextures();
 
 
 private:

@@ -25,7 +25,6 @@ struct MaterialProperty { std::string name; PropValue value; };
 struct Material {
     std::string shaderKey;            // source of truth, serialized
     AssetHandle shaderID;             // runtime cache, set together with shaderKey
-    AssetHandle textureID;            // keep until textures become a property (Textured viewport mode uses it)
     std::vector<MaterialProperty> props;
 };
 

@@ -325,7 +325,6 @@ bool SceneSerializer::Apply(const std::vector<Entry> &entries,std::string& error
             for (auto& p : mat.props)
                 if (auto* t = std::get_if<TextureRef>(&p.value); t && !t->path.empty())
                     t->handle = p_materialSystem->GetOrLoadTexture(t->path);
-            if (!e.mat.texture.empty()) mat.textureID = p_materialSystem->LoadTextureFile(e.mat.texture);
             comp::MaterialComponent mc;
             mc.materialID = p_materialSystem->RegisterMaterial(std::move(mat));
             p_scene->InsertComponent(ent, mc);
