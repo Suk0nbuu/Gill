@@ -33,6 +33,7 @@ bool App::Init(unsigned int width, unsigned int height) {
     up_camera = std::make_unique<Camera>();
     up_input = std::make_unique<Input>(up_window.get());
     up_engine->Init(static_cast<int>(m_width),static_cast<int>(m_height),up_camera.get(),up_scene.get());
+    up_engine->GetMaterialSystem()->SetProjectRoot(m_project->GetRoot());
     up_editor->Init(m_width,m_height,up_window.get(),up_scene.get(),up_input.get(),m_projection,up_camera.get(),up_engine->GetTransformSystem(),up_engine->GetHierarchy(),up_engine->GetMeshSystem(),up_engine->GetMaterialSystem(),up_engine->GetRenderer(),up_engine->GetArmatureSystem());
     std::string err;
     if (!LoadScene(err)) { std::fprintf(stderr, "Scene load failed: %s\n", err.c_str()); return false; }

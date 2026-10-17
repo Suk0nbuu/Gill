@@ -81,12 +81,13 @@ bool DrawMaterialInspector(EditorContext& ctx, Entity e) {
             ImGui::PushID(p.name.c_str());
             ImGui::TextUnformatted(p.name.c_str()); ImGui::SameLine();
             const std::string label = t->path.empty() ? "None (click to choose)" : std::filesystem::path(t->path).filename().string();
+            const std::filesystem::path& root = ctx.p_materialSystem->GetProjectRoot();
+            if (root.empty()) { ImGui::TextDisabled("No project open"); }
             if (ImGui::Button(label.c_str())) {
                 if (auto picked = PickImageFile()) {
                     std::string err;
-                    const std::string rel = ImportTexture(*picked, ctx.p_materialSystem->Get, err);
+                    const std::string rel = ImportTexture(*picked, root, err);
                     if (!rel.empty()) { t->path = rel; t->handle = ctx.p_materialSystem->GetOrLoadTexture(rel); changed = true; }
-                    // else: show err in your log or a popup
                 }
             }
             if (!t->path.empty()) { ImGui::SameLine(); if (ImGui::SmallButton("x")) { *t = {}; changed = true; } }

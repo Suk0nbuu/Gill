@@ -2,6 +2,7 @@
 #include <string>
 #include <memory>
 #include "mathpp.hpp"
+#include "core/system/material/material.hpp"
 
 
 
@@ -11,7 +12,6 @@ class Scene;
 class TransformSystem;
 class Hierarchy;
 class MeshSystem;
-class MaterialSystem;
 class ArmatureSystem;
 
 class Engine {

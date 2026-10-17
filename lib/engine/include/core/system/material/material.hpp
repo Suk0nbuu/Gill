@@ -37,7 +37,8 @@ public:
     AssetHandle LoadTextureFile(const std::string& path);
     void RemoveTexture(AssetHandle handle);
 
-    void SetProjectRoot(std::filesystem::path root);            // call on project open; clear on close
+    void SetProjectRoot(std::filesystem::path root) { m_projectRoot = std::move(root); m_textureByPath.clear(); }
+    const std::filesystem::path& GetProjectRoot() const { return m_projectRoot; }
     AssetHandle GetOrLoadTexture(const std::string& relPath);   // invalid handle if missing
     void ClearProjectTextures();                                // call on project close
 
