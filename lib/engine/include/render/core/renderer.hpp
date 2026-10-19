@@ -18,9 +18,10 @@ class TransformSystem;
 class Scene;
 class MeshSystem;
 class MaterialSystem;
-
+class Hierarchy;
 
 using Entity = uint32_t;
+
 
 
 
@@ -34,7 +35,7 @@ enum class ViewportMode : int {
 class Renderer {
     public:
     ~Renderer();
-    void Init(Scene* scene,TransformSystem* transformSystem, MeshSystem* meshSystem,MaterialSystem* materialSystem,ArmatureSystem* armatureSystem);
+    void Init(Scene* scene,TransformSystem* transformSystem, MeshSystem* meshSystem,MaterialSystem* materialSystem,ArmatureSystem* armatureSystem,Hierarchy* hierarchy);
     void renderScene(const Scene* scene,const mathpp::mat4f& view,const mathpp::mat4f& projection,const mathpp::vec3f& viewVec);
     void SetViewportMode(ViewportMode mode);
     ViewportMode GetViewportMode();
@@ -43,6 +44,7 @@ private:
     const Texture* FindMaterialTexture(const Material& m) const;
     void UploadSkinningPalette(const Scene* scene, Entity entity);
     void UploadLight();
+    const comp::ArmatureComponent* FindArmature(const Scene* scene, Entity e) const;
     void UploadCamera(const mathpp::mat4f& view, const mathpp::mat4f& proj, const mathpp::vec3f& camPos);
     void DrawEntity(const Scene* scene, Entity entity, const mathpp::mat4f& view,const comp::MeshComponent& meshComp, const mathpp::mat4f& proj,const mathpp::vec3f& viewVec);
     std::unique_ptr<Shader> solidShader;
@@ -59,5 +61,6 @@ private:
     MeshSystem* p_meshSystem;
     MaterialSystem* p_materialSystem;
     ArmatureSystem* p_armatureSystem;
+    Hierarchy* p_hierarchy;
     ViewportMode em_viewportMode = ViewportMode::Solid;
 };

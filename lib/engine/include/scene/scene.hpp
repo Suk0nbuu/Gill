@@ -89,6 +89,7 @@ T* TryGetComponent(Entity entity);
     SparseSet<comp::ArmatureComponent> m_armatures;
     SparseSet<comp::PrimitiveComponent> m_primitives;
     SparseSet<comp::NameComponent> m_names;
+    SparseSet<comp::MeshRefComponent> m_meshRefs;
 };
 
 
@@ -214,10 +215,24 @@ T* TryGetComponent(Entity entity);
         }
         return nullptr;
     }
+    template <>
+    inline const comp::MeshRefComponent* Scene::TryGetComponent<comp::MeshRefComponent>(Entity entity)const {
+        if (m_meshRefs.Has(entity)) {
+            return &m_meshRefs.Get(entity);
+        }
+        return nullptr;
+    }
     template<>
     inline comp::NameComponent* Scene::TryGetComponent<comp::NameComponent>(Entity entity) {
         if (m_names.Has(entity)) {
             return &m_names.Get(entity);
+        }
+        return nullptr;
+    }
+    template<>
+    inline comp::MeshRefComponent* Scene::TryGetComponent<comp::MeshRefComponent>(Entity entity) {
+        if (m_meshRefs.Has(entity)) {
+            return &m_meshRefs.Get(entity);
         }
         return nullptr;
     }
@@ -259,8 +274,16 @@ T* TryGetComponent(Entity entity);
         m_meshes.Remove(entity);
     }
     template<>
+    inline void Scene::RemoveComponent<comp::MeshRefComponent>(Entity entity) {
+        m_meshes.Remove(entity);
+    }
+    template<>
     inline void Scene::InsertComponent<comp::LightComponent>(Entity entity,const comp::LightComponent& component) {
         m_lights.Insert(entity, component);
+    }
+    template<>
+    inline void Scene::InsertComponent<comp::MeshRefComponent>(Entity entity,const comp::MeshRefComponent& component) {
+        m_meshRefs.Insert(entity, component);
     }
     template<>
     inline void Scene::RemoveComponent<comp::LightComponent>(Entity entity) {

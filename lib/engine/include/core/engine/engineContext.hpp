@@ -6,12 +6,14 @@ class TransformSystem;
 class MeshSystem;
 class MaterialSystem;
 class ProjectPaths;
+class ArmatureSystem;
 
 struct EngineContext {
-    Scene* p_scene;
-    Hierarchy* p_hierarchy;
-    TransformSystem* p_transformSystem;
-    MeshSystem* p_meshSystem;
-    MaterialSystem* p_materialSystem;
-    ProjectPaths* p_projectPaths;
+    Scene* p_scene = nullptr;
+    Hierarchy* p_hierarchy = nullptr;
+    TransformSystem* p_transformSystem = nullptr;
+    MeshSystem* p_meshSystem = nullptr;
+    MaterialSystem* p_materialSystem = nullptr;
+    ProjectPaths* p_projectPaths = nullptr;
+    ArmatureSystem* p_armatureSystem = nullptr;
 };

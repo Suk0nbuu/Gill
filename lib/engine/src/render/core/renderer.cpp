@@ -14,16 +14,18 @@
 #include "render/data/cameraBlock.hpp"
 #include "render/data/lightBlock.hpp"
 #include "render/data/uniform.hpp"
+#include "core/system/hierarchy/hierarchy.hpp"
 #include <type_traits>
 
 
-void Renderer::Init(Scene* scene,TransformSystem* transformSystem,MeshSystem* meshSystem,MaterialSystem* materialSystem,ArmatureSystem* armatureSystem) {
+void Renderer::Init(Scene* scene,TransformSystem* transformSystem,MeshSystem* meshSystem,MaterialSystem* materialSystem,ArmatureSystem* armatureSystem,Hierarchy* hierarchy) {
     glEnable(GL_DEPTH_TEST);
     p_scene = scene;
     p_transformSystem = transformSystem;
     p_meshSystem = meshSystem;
     p_materialSystem = materialSystem;
     p_armatureSystem = armatureSystem;
+    p_hierarchy = hierarchy;
     up_lightSystem = std::make_unique<LightSystem>();
     up_lightSystem->Init(transformSystem);
     textureShader = std::make_unique<Shader>("asset/shader/textureShader/textureVert.glsl","asset/shader/textureShader/textureFrag.glsl");
@@ -149,5 +151,15 @@ const Texture* Renderer::FindMaterialTexture(const Material& m) const {
     for (const auto& p : m.props)
         if (const auto* t = std::get_if<TextureRef>(&p.value))
             if (const Texture* tex = p_materialSystem->GetTexture(t->handle)) return tex;
+    return nullptr;
+}
+
+const comp::ArmatureComponent* Renderer::FindArmature(const Scene* scene, Entity e) const {
+    for (int depth = 0; depth < 64; ++depth) {
+        if (const auto* a = scene->TryGetComponent<comp::ArmatureComponent>(e)) return a;
+        const auto parent = p_hierarchy->TryGetParent(e);
+        if (!parent) return nullptr;
+        e = *parent;
+    }
     return nullptr;
 }

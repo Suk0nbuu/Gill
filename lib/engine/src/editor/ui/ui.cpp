@@ -16,6 +16,7 @@
 #include "editor/dialog/filePicker.hpp"
 #include "core/project/projectPath.hpp"
 #include "core/ops/primitiveOps.hpp"
+#include "core/ops/modelOps.hpp"
 
 void UIManager::Init(Window* window,Scene* scene,TransformSystem* transformSystem, Hierarchy* hierarchy,TransformData* gizmoData,Renderer* renderer,MeshSystem* meshSystem,MaterialSystem* materialSystem,EditorInputMap* editorInputMap,SelectionManager* selectionManager,Input* input,ProjectPaths* projectPaths) {
     ImGui::CreateContext();
@@ -76,6 +77,20 @@ void UIManager::RenderAddMenu() {
             if (ImGui::MenuItem("Cone")) m_ctx.p_selectionManager->SetSelected(SpawnPrimitive(m_ctx,PrimitiveType::Cone,m_primitiveData));
             if (ImGui::MenuItem("Empty")) m_ctx.p_selectionManager->SetSelected(SpawnEmpty(m_ctx));
             if (ImGui::MenuItem("Light")) m_ctx.p_selectionManager->SetSelected(SpawnLight(m_ctx));
+            if (ImGui::MenuItem("Mesh from model file...")) {
+                if (auto picked = FilePicker::PickModelFile()) {
+                    std::string err;
+                    if (auto e = SpawnModelMesh(m_ctx, *picked, err)) m_ctx.p_selectionManager->SetSelected(*e);
+                    else std::fprintf(stderr, "Import failed: %s\n", err.c_str());
+                }
+            }
+            if (ImGui::MenuItem("Model (.glb, full hierarchy)...")) {
+                if (auto picked = FilePicker::PickModelFile()) {
+                    std::string err;
+                    if (auto e = InstantiateModel(m_ctx, *picked, err)) m_ctx.p_selectionManager->SetSelected(*e);
+                    else std::fprintf(stderr, "Import failed: %s\n", err.c_str());
+                }
+            }
             ImGui::EndMenu();
         }
         ImGui::EndMainMenuBar();
