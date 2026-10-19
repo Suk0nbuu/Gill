@@ -21,7 +21,7 @@
 #include "core/debug/test.hpp"
 
 
-void Editor::Init(float Width, float Height,Window* window,Scene* scene,Input* input,const mathpp::mat4f& projection, Camera* camera,TransformSystem* transformSystem,Hierarchy* hierarchy,MeshSystem* meshSystem, MaterialSystem* materialSystem,Renderer* renderer, ArmatureSystem* armatureSystem) {
+void Editor::Init(float Width, float Height,Window* window,Scene* scene,Input* input,const mathpp::mat4f& projection, Camera* camera,TransformSystem* transformSystem,Hierarchy* hierarchy,MeshSystem* meshSystem, MaterialSystem* materialSystem,Renderer* renderer, ArmatureSystem* armatureSystem,ProjectPaths* projectPath) {
     p_window = window;
     p_scene = scene;
     m_width = Width;
@@ -38,6 +38,7 @@ void Editor::Init(float Width, float Height,Window* window,Scene* scene,Input* i
     p_meshSystem = meshSystem;
     p_materialSystem = materialSystem;
     p_input = input;
+    p_projectPaths = projectPath;
     p_armatureSystem = armatureSystem;
     up_selectionManager = std::make_unique<SelectionManager>();
     up_editorInputMap = std::make_unique<EditorInputMap>(p_input);
@@ -47,7 +48,7 @@ void Editor::Init(float Width, float Height,Window* window,Scene* scene,Input* i
     up_gizmoAdapter = std::make_unique<GizmoAdapter>();
     up_gridRenderer->Init(100);
     up_gizmo->Init(m_width,m_height,&m_gizmoData,p_transformSystem);
-    up_ui->Init(window,p_scene,p_transformSystem,p_hierarchy,&m_gizmoData,p_renderer,p_meshSystem,p_materialSystem,up_editorInputMap.get(),up_selectionManager.get(),p_input);
+    up_ui->Init(window,p_scene,p_transformSystem,p_hierarchy,&m_gizmoData,p_renderer,p_meshSystem,p_materialSystem,up_editorInputMap.get(),up_selectionManager.get(),p_input,p_projectPaths);
     up_ui->SetFileEvents(&saveRequested, &closeRequested);
     up_selector->Init(m_width,m_height);
     up_outline->Init(meshSystem,transformSystem,up_selectionManager.get());

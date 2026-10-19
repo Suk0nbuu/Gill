@@ -39,6 +39,7 @@ class Renderer;
 class Input;
 class EditorInputMap;
 class SelectionManager;
+class ProjectPaths;
 struct TransformData;
 
 
@@ -83,18 +84,11 @@ private:
     EditorContext m_ctx;
 };
 
-struct PrimitiveData {
-    Entity entity = UINT32_MAX;
-    PrimitiveType type;
-    int rings = 32;
-    int segments = 16;
-    float radius = 1.0f;
-    float height = 1.0f;
-};
+
 
 class UIManager {
 public:
-    void Init(Window* window,Scene* scene,TransformSystem* transformSystem, Hierarchy* hierarchy,TransformData* gizmoData,Renderer* renderer,MeshSystem* meshSystem,MaterialSystem* materialSystem,EditorInputMap* editorInputMap,SelectionManager* selectionManager,Input* input);
+    void Init(Window* window,Scene* scene,TransformSystem* transformSystem, Hierarchy* hierarchy,TransformData* gizmoData,Renderer* renderer,MeshSystem* meshSystem,MaterialSystem* materialSystem,EditorInputMap* editorInputMap,SelectionManager* selectionManager,Input* input,ProjectPaths* projectPaths);
     void RenderPanels();
     void RenderAddMenu();
     void RenderPrimitiveOp();
@@ -107,7 +101,6 @@ public:
 
 private:
     void DrawDockspace(Scene* scene);
-    void RegeneratePrimitiveMesh(Scene* scene,Entity entity);
     void ApplyEditorTheme();
     EditorContext m_ctx;
     PrimitiveData m_primitiveData;
@@ -116,9 +109,6 @@ private:
 
     std::vector<std::unique_ptr<EditorPanel>> v_panels;
     ComponentRegistry m_registry;
-    void AddPrimitive(PrimitiveType type);
-    void AddEmpty(std::optional<Entity> parent = std::nullopt);
-    void AddLight();
     ImGuiIO* p_io_ptr;
 
 

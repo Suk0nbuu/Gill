@@ -1,5 +1,6 @@
 #include "core/system/material/material.hpp"
 #include <algorithm>
+#include "core/project/projectPath.hpp"
 
 const Material *MaterialSystem::GetMaterial(AssetHandle handle) const {
     if (m_materialManager.Has(handle)) {
@@ -86,13 +87,13 @@ Material MaterialSystem::MakeMaterial(const std::string& key) {
 
 
 MaterialSystem::MaterialSystem() {
-    m_defs["builtin:brdf"] = { "asset/shader/pbr/brdf/brdfVert.glsl", "asset/shader/pbr/brdf/brdfFrag.glsl", {
+    m_defs["builtin:brdf"] = { "asset/shader/core/surfaceVert.glsl", "asset/shader/pbr/brdf/brdfFrag.glsl", {
         {"albedo",    PropType::Color3, mathpp::vec3f{0.8f,0.8f,0.8f}},
         {"metallic",  PropType::Float,  0.2f, 0.0f,  1.0f},
         {"roughness", PropType::Float,  1.0f, 0.05f, 1.0f},
         {"albedoTex", PropType::Texture, TextureRef{}},
     }};
-    m_defs["builtin:emission"] = {"asset/shader/pbr/brdf/brdfVert.glsl","asset/shader/pbr/emission/emissionFrag.glsl",{
+    m_defs["builtin:emission"] = {"asset/shader/core/surfaceVert.glsl","asset/shader/pbr/emission/emissionFrag.glsl",{
     {"color",PropType::Color3,mathpp::vec3f{1.0f,1.0f,1.0f}},
         {"strength",PropType::Float,1.0f,0.0f,20.0f},
 
@@ -120,8 +121,8 @@ void MaterialSystem::SetShader(Material &m, const std::string &key) {
 
 AssetHandle MaterialSystem::GetOrLoadTexture(const std::string& rel) {
     if (auto it = m_textureByPath.find(rel); it != m_textureByPath.end()) return it->second;
-    const std::filesystem::path full = m_projectRoot / rel;
-    if (!std::filesystem::is_regular_file(full)) return AssetHandle{};   // don't cache failures
+    const std::filesystem::path full = p_projectPath->Resolve(rel);
+    if (!std::filesystem::is_regular_file(full)) return AssetHandle{};
     AssetHandle h = LoadTextureFile(full.string());
     m_textureByPath.emplace(rel, h);
     return h;

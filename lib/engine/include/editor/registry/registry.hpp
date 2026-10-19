@@ -19,6 +19,7 @@ class Hierarchy;
 class Input;
 class ComponentRegistry;
 
+
 struct EditorContext : EngineContext {
     Input* p_input;
     TransformData* p_gizmoData;

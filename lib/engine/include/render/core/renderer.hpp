@@ -41,7 +41,7 @@ class Renderer {
 private:
     void UploadMaterial(const Material& m, const Shader& s) const;
     const Texture* FindMaterialTexture(const Material& m) const;
-    void UploadSkinningPalette(const Scene* scene, Entity entity, const Shader& shader);
+    void UploadSkinningPalette(const Scene* scene, Entity entity);
     void UploadLight();
     void UploadCamera(const mathpp::mat4f& view, const mathpp::mat4f& proj, const mathpp::vec3f& camPos);
     void DrawEntity(const Scene* scene, Entity entity, const mathpp::mat4f& view,const comp::MeshComponent& meshComp, const mathpp::mat4f& proj,const mathpp::vec3f& viewVec);
@@ -51,6 +51,7 @@ private:
     std::unique_ptr<Texture> fallBackTexture;
     std::unique_ptr<UniformBuffer> up_cameraUBO;
     std::unique_ptr<UniformBuffer> up_lightUBO;
+    std::unique_ptr<UniformBuffer> up_skinUBO;
     std::unique_ptr<LightSystem> up_lightSystem;
     ShaderVariantCache m_shaderCache;
     Scene* p_scene;

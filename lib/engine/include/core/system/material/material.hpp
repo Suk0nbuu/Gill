@@ -9,7 +9,7 @@
 
 
 
-
+class ProjectPaths;
 
 class MaterialSystem {
 public:
@@ -37,17 +37,15 @@ public:
     AssetHandle LoadTextureFile(const std::string& path);
     void RemoveTexture(AssetHandle handle);
 
-    void SetProjectRoot(std::filesystem::path root) { m_projectRoot = std::move(root); m_textureByPath.clear(); }
-    const std::filesystem::path& GetProjectRoot() const { return m_projectRoot; }
-    AssetHandle GetOrLoadTexture(const std::string& relPath);   // invalid handle if missing
-    void ClearProjectTextures();
+
+    AssetHandle GetOrLoadTexture(const std::string& relPath);
+
 
 
 private:
     AssetManager<Material> m_materialManager;
     AssetManager<Shader> m_shaderManager;
     AssetManager<Texture> m_textureManager;
-    std::filesystem::path m_projectRoot;
     std::unordered_map<std::string, AssetHandle> m_textureByPath;
 
 
@@ -55,7 +53,7 @@ private:
 
     std::unordered_map<std::string, ShaderDef>    m_defs;      // key -> definition
     std::unordered_map<std::string, AssetHandle>  m_handles;   // key -> loaded shader (lazy)
-
+    ProjectPaths* p_projectPath;
 
 
 };

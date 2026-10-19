@@ -32,6 +32,7 @@ void Renderer::Init(Scene* scene,TransformSystem* transformSystem,MeshSystem* me
     fallBackTexture = std::make_unique<Texture>("asset/texture/core/Debugempty.png");
     up_cameraUBO = std::make_unique<UniformBuffer>(sizeof(CameraBlock), kCameraBinding);
     up_lightUBO = std::make_unique<UniformBuffer>(sizeof(LightBlock), kLightBinding);
+    up_skinUBO = std::make_unique<UniformBuffer>(sizeof(mathpp::mat4f) * kMaxBones, kSkinBinding);
 }
 
 void Renderer::SetViewportMode(ViewportMode mode) {
@@ -74,13 +75,14 @@ void Renderer::DrawEntity(const Scene* scene, Entity entity,
         matCapTexture->Bind(0);
         shader->setInt("matCap", 0);
 
-        if (features & Feature_Skinning) UploadSkinningPalette(scene, entity, *shader);
+        if (features & Feature_Skinning) UploadSkinningPalette(scene, entity);
     } else if (em_viewportMode == ViewportMode::Rendered) {
         const Shader* baseShader = mat ? p_materialSystem->GetShader(mat->shaderID) : nullptr;
         const Shader* shader = baseShader ? baseShader : solidShader.get();
         shader->Use();
         if (mat) UploadMaterial(*mat, *shader);
         shader->setMat4f("model", p_transformSystem->GetWorldTransform(entity));
+        if (features & Feature_Skinning) UploadSkinningPalette(scene, entity);
     }
     else {
         Shader* shader = m_shaderCache.Get("asset/shader/textureShader/textureVert.glsl", "asset/shader/textureShader/textureFrag.glsl", features);
@@ -91,7 +93,7 @@ void Renderer::DrawEntity(const Scene* scene, Entity entity,
         shader->setInt("meshTexture", 0);
         shader->setMat4f("model", p_transformSystem->GetWorldTransform(entity));
 
-        if (features & Feature_Skinning) UploadSkinningPalette(scene, entity, *shader);
+        if (features & Feature_Skinning) UploadSkinningPalette(scene, entity);
     }
 
     mesh->Draw();
@@ -99,13 +101,16 @@ void Renderer::DrawEntity(const Scene* scene, Entity entity,
 
 Renderer::~Renderer() = default;
 
-void Renderer::UploadSkinningPalette(const Scene* scene, Entity entity, const Shader& shader) {
-    const auto* armComp = scene->TryGetComponent<comp::ArmatureComponent>(entity);
-    if (!armComp) return;
-    std::vector<mathpp::mat4f> palette = p_armatureSystem->ComputeSkinningPalette(*armComp);
-    for (size_t i = 0; i < palette.size(); ++i) {
-        shader.setMat4f("boneMatrices[" + std::to_string(i) + "]", palette[i]);
+void Renderer::UploadSkinningPalette(const Scene* scene, Entity entity) {
+    std::array<mathpp::mat4f, kMaxBones> block;
+    block.fill(mathpp::mat4f());
+
+    if (const auto* armComp = scene->TryGetComponent<comp::ArmatureComponent>(entity)) {
+        const std::vector<mathpp::mat4f> palette = p_armatureSystem->ComputeSkinningPalette(*armComp);
+        const size_t n = std::min(palette.size(), static_cast<size_t>(kMaxBones));
+        std::copy_n(palette.begin(), n, block.begin());
     }
+    up_skinUBO->Update(block.data(), sizeof(mathpp::mat4f) * kMaxBones);
 }
 
 void Renderer::UploadCamera(const mathpp::mat4f& view, const mathpp::mat4f& proj, const mathpp::vec3f& camPos) {

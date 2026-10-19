@@ -2,7 +2,7 @@
 layout (location = 3) in ivec4 aBoneIndices;
 layout (location = 4) in vec4 aBoneWeights;
 
-layout(std140) uniform Skin { mat4 boneMatrices[64]; };
+layout(std140) uniform Skin { mat4 boneMatrices[MAX_BONES]; };
 
 mat4 GetSkinMatrix() {
     float total = aBoneWeights.x + aBoneWeights.y + aBoneWeights.z + aBoneWeights.w;

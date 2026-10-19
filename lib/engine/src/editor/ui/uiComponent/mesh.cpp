@@ -4,7 +4,7 @@
 #include "magic_enum.hpp"
 #include "editor/registry/registry.hpp"
 #include "scene/scene.hpp"
-#include "core/system/entity/entityOps.hpp"
+#include "../../../../include/core/ops/entityOps.hpp"
 
 namespace {
     comp::PrimitiveComponent DefaultPrimitive(PrimitiveType t) {

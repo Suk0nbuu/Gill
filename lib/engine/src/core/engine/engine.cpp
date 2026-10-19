@@ -8,11 +8,13 @@
 #include "core/system/hierarchy/hierarchy.hpp"
 #include "core/system/material/material.hpp"
 #include "core/system/mesh/mesh.hpp"
+#include "core/project/projectPath.hpp"
 
 
 void Engine::Init(unsigned int width, unsigned int height,Camera* camera,Scene* scene) {
     p_cam = camera;
     p_scene = scene;
+    up_projectPaths = std::make_unique<ProjectPaths>();
     up_renderer = std::make_unique<Renderer>();
     up_transformSystem = std::make_unique<TransformSystem>();
     up_hierarchy = std::make_unique<Hierarchy>();
@@ -20,6 +22,7 @@ void Engine::Init(unsigned int width, unsigned int height,Camera* camera,Scene* 
     up_materialSystem = std::make_unique<MaterialSystem>();
     up_transformSystem->Init(up_hierarchy.get());
     up_armatureSystem = std::make_unique<ArmatureSystem>();
+
     up_renderer->Init(scene,up_transformSystem.get(),up_meshSystem.get(),up_materialSystem.get(),up_armatureSystem.get());
     m_width = width;
     m_height = height;
@@ -64,4 +67,8 @@ MeshSystem *Engine::GetMeshSystem() {
 
 Renderer *Engine::GetRenderer() {
     return up_renderer.get();
+}
+
+ProjectPaths *Engine::GetProjectPath() {
+    return up_projectPaths.get();
 }

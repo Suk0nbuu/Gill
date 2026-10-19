@@ -13,6 +13,7 @@ class TransformSystem;
 class Hierarchy;
 class MeshSystem;
 class ArmatureSystem;
+class ProjectPaths;
 
 class Engine {
 
@@ -28,6 +29,7 @@ public:
     MaterialSystem* GetMaterialSystem();
     Renderer* GetRenderer();
     ArmatureSystem* GetArmatureSystem();
+    ProjectPaths* GetProjectPath();
 
 private:
     unsigned int m_width,m_height;
@@ -37,6 +39,7 @@ private:
     std::unique_ptr<MaterialSystem> up_materialSystem;
     std::unique_ptr<MeshSystem> up_meshSystem;
     std::unique_ptr<ArmatureSystem> up_armatureSystem;
+    std::unique_ptr<ProjectPaths> up_projectPaths;
     Camera* p_cam;
     Scene* p_scene;
 

@@ -8,13 +8,16 @@
 #include "editor/gizmo/transformData.hpp"
 #include "render/core/renderer.hpp"
 #include "core/input/input.hpp"
-#include "core/system/entity/entityOps.hpp"
+#include "../../../include/core/ops/entityOps.hpp"
+#include "core/ops/lightOps.hpp"
 #include "core/system/mesh/mesh.hpp"
 #include "editor/inputAction/inputAction.hpp"
 #include "editor/selector/selectionManager.hpp"
+#include "editor/dialog/filePicker.hpp"
+#include "core/project/projectPath.hpp"
+#include "core/ops/primitiveOps.hpp"
 
-
-void UIManager::Init(Window* window,Scene* scene,TransformSystem* transformSystem, Hierarchy* hierarchy,TransformData* gizmoData,Renderer* renderer,MeshSystem* meshSystem,MaterialSystem* materialSystem,EditorInputMap* editorInputMap,SelectionManager* selectionManager,Input* input) {
+void UIManager::Init(Window* window,Scene* scene,TransformSystem* transformSystem, Hierarchy* hierarchy,TransformData* gizmoData,Renderer* renderer,MeshSystem* meshSystem,MaterialSystem* materialSystem,EditorInputMap* editorInputMap,SelectionManager* selectionManager,Input* input,ProjectPaths* projectPaths) {
     ImGui::CreateContext();
     p_io_ptr = &ImGui::GetIO(); (void)p_io_ptr;
     p_io_ptr->ConfigFlags |= ImGuiConfigFlags_DockingEnable; //Enable Docking
@@ -31,6 +34,7 @@ void UIManager::Init(Window* window,Scene* scene,TransformSystem* transformSyste
     m_ctx.p_transformSystem = transformSystem;
     m_ctx.p_selectionManager = selectionManager;
     m_ctx.p_scene = scene;
+    m_ctx.p_projectPaths = projectPaths;
 
     ImGui_ImplOpenGL3_Init("#version 330");
     ImGui_ImplGlfw_InitForOpenGL(window->GetWindow(),true);
@@ -53,28 +57,7 @@ void UIManager::EndFrame() {
 }
 
 
-void UIManager::AddPrimitive(PrimitiveType type) {
-    comp::PrimitiveComponent prim;
-    prim.type = type;
-    prim.rings = m_primitiveData.rings;
-    prim.segments = m_primitiveData.segments;
-    prim.radius = m_primitiveData.radius;
-    prim.height = m_primitiveData.height;
 
-    comp::MeshComponent meshComp;
-    comp::MaterialComponent matComp;
-    Material mat = m_ctx.p_materialSystem->MakeMaterial("builtin:brdf");
-    matComp.materialID = m_ctx.p_materialSystem->RegisterMaterial(std::move(mat));
-
-    meshComp.meshID = m_ctx.p_meshSystem->AddPrimitive(prim.type, prim.rings, prim.segments, prim.radius, prim.height);
-
-    Entity entity = m_ctx.p_scene->CreateEntity();
-    m_ctx.p_transformSystem->AddTransform(entity);
-    m_ctx.p_scene->InsertComponent(entity, meshComp);
-    m_ctx.p_scene->InsertComponent(entity, prim);
-    m_ctx.p_scene->InsertComponent(entity,matComp);
-
-}
 
 void UIManager::RenderAddMenu() {
     if (ImGui::BeginMainMenuBar()) {
@@ -86,13 +69,13 @@ void UIManager::RenderAddMenu() {
         }
 
         if (ImGui::BeginMenu("Add")) {
-            if (ImGui::MenuItem("Cube"))   AddPrimitive(PrimitiveType::Cube);
-            if (ImGui::MenuItem("Sphere")) AddPrimitive(PrimitiveType::Sphere);
-            if (ImGui::MenuItem("Plane"))  AddPrimitive(PrimitiveType::Plane);
-            if (ImGui::MenuItem("Cylinder")) AddPrimitive(PrimitiveType::Cylinder);
-            if (ImGui::MenuItem("Cone")) AddPrimitive(PrimitiveType::Cone);
-            if (ImGui::MenuItem("Empty")) AddEmpty();
-            if (ImGui::MenuItem("Light")) AddLight();
+            if (ImGui::MenuItem("Cube"))   m_ctx.p_selectionManager->SetSelected(SpawnPrimitive(m_ctx,PrimitiveType::Cube,m_primitiveData));
+            if (ImGui::MenuItem("Sphere")) m_ctx.p_selectionManager->SetSelected(SpawnPrimitive(m_ctx,PrimitiveType::Sphere,m_primitiveData));
+            if (ImGui::MenuItem("Plane"))  m_ctx.p_selectionManager->SetSelected(SpawnPrimitive(m_ctx,PrimitiveType::Plane,m_primitiveData));
+            if (ImGui::MenuItem("Cylinder")) m_ctx.p_selectionManager->SetSelected(SpawnPrimitive(m_ctx,PrimitiveType::Cylinder,m_primitiveData));
+            if (ImGui::MenuItem("Cone")) m_ctx.p_selectionManager->SetSelected(SpawnPrimitive(m_ctx,PrimitiveType::Cone,m_primitiveData));
+            if (ImGui::MenuItem("Empty")) m_ctx.p_selectionManager->SetSelected(SpawnEmpty(m_ctx));
+            if (ImGui::MenuItem("Light")) m_ctx.p_selectionManager->SetSelected(SpawnLight(m_ctx));
             ImGui::EndMenu();
         }
         ImGui::EndMainMenuBar();
@@ -336,16 +319,10 @@ void UIManager::RenderPrimitiveOp() {
     changed |= ImGui::DragFloat("Radius", &prim->radius, 0.01f, 0.01f, 100.0f);
     ImGui::End();
 
-    if (changed) RegeneratePrimitiveMesh(m_ctx.p_scene, entity);
+    if (changed) RegeneratePrimitive(m_ctx, entity);
 }
 
-void UIManager::RegeneratePrimitiveMesh(Scene* scene, Entity entity) {
-    const comp::PrimitiveComponent* prim = scene->TryGetComponent<comp::PrimitiveComponent>(entity);
-    comp::MeshComponent* meshComp = scene->TryGetComponent<comp::MeshComponent>(entity);
-    if (prim == nullptr || meshComp == nullptr) return;
-    if (meshComp->meshID != AssetHandle{}) m_ctx.p_meshSystem->RemoveMesh(meshComp->meshID);
-    meshComp->meshID = m_ctx.p_meshSystem->AddPrimitive(prim->type, prim->rings, prim->segments, prim->radius, prim->height);
-}
+
 
 void UIManager::DrawDockspace(Scene *scene) {
     return;
@@ -401,16 +378,7 @@ void UIManager::ApplyEditorTheme() {
 }
 
 
-void UIManager::AddEmpty(std::optional<Entity> parent) {
-    Entity e = m_ctx.p_scene->CreateEntity();
-    m_ctx.p_transformSystem->AddTransform(e);
-    m_ctx.p_scene->InsertComponent(e, comp::NameComponent{"Empty"});
-    if (parent) {
-        m_ctx.p_hierarchy->SetParent(e, *parent);
-        m_ctx.p_transformSystem->MarkDirty(e);
-    }
-    m_ctx.p_selectionManager->SetSelected(e);
-}
+
 
 void HierarchyPanel::ApplyDeletion(const std::vector<Entity>& entities) {
     std::unordered_set<Entity> pendingSet(entities.begin(), entities.end());
@@ -439,16 +407,6 @@ void HierarchyPanel::ApplyDeletion(const std::vector<Entity>& entities) {
     }
 }
 
-void UIManager::AddLight() {
-    Entity entity = m_ctx.p_scene->CreateEntity();
-    comp::LightComponent lComp;
-    comp::PrimitiveComponent pComp;
-    pComp.type = PrimitiveType::Sphere;
-    comp::MeshComponent mComp;
-    mComp.meshID = m_ctx.p_meshSystem->AddPrimitive(pComp.type,pComp.rings,pComp.segments,pComp.radius,pComp.height);
-    m_ctx.p_transformSystem->AddTransform(entity);
-    m_ctx.p_scene->InsertComponent(entity,lComp);
-    m_ctx.p_scene->InsertComponent(entity,pComp);
-    m_ctx.p_scene->InsertComponent(entity,mComp);
 
-}
+
+

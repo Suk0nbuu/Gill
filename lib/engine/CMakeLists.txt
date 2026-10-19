@@ -92,11 +92,19 @@ add_library(engine STATIC
         include/editor/ui/uiComponent/material.hpp
         src/editor/ui/uiComponent/material.cpp
         include/core/engine/engineContext.hpp
-        include/core/system/entity/entityOps.hpp
-        src/core/system/entity/entityOps.cpp
+        include/core/ops/entityOps.hpp
+        src/core/ops/entityOps.cpp
         include/editor/registry/componentDescriptor.hpp
         include/editor/ui/uiComponent/light.hpp
         src/editor/ui/uiComponent/light.cpp
+        include/editor/dialog/filePicker.hpp
+        src/editor/dialog/filePicker.cpp
+        include/core/project/projectPath.hpp
+        include/core/ops/primitiveOps.hpp
+        include/core/ops/lightOps.hpp
+        include/core/ops/modelOps.hpp
+        src/core/ops/primitiveOps.cpp
+        src/core/ops/lightOps.cpp
 
 
 )

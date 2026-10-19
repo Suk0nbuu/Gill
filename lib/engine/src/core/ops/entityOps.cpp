@@ -1,4 +1,4 @@
-#include "core/system/entity/entityOps.hpp"
+#include "../../../include/core/ops/entityOps.hpp"
 #include <vector>
 #include <functional>
 #include "scene/scene.hpp"
@@ -6,6 +6,8 @@
 #include "core/system/transform/transform.hpp"
 #include "core/system/mesh/mesh.hpp"
 #include "core/system/material/material.hpp"
+#include "io/gltf/gltf.hpp"
+#include "core/project/projectPath.hpp"
 
 namespace {
     void DestroyOne(const EngineContext& ctx, Entity e) {
@@ -57,3 +59,37 @@ void RemoveMeshFromEntity(const EngineContext& ctx, Entity e) {
     if (s->TryGetComponent<comp::MeshComponent>(e))      s->RemoveComponent<comp::MeshComponent>(e);
     // later: MeshRefComponent
 }
+/*
+bool AddMeshFromModel(EngineContext& ctx, Entity e, const std::filesystem::path& src, std::string& err) {
+    const auto& root = ctx.p_projectPaths->Root();
+    if (root.empty()) { err = "no project open"; return false; }
+
+    GLTFModel model = LoadGLTF(src.string());                      // load first, so a bad file leaves nothing in the project
+    if (!model.error.empty()) { err = model.error; return false; }
+    if (model.meshes.size() != 1) { err = "model has " + std::to_string(model.meshes.size()) + " meshes, use Import Model"; return false; }
+    if (model.meshes[0].IsSkinned()) { err = "skinned meshes need Import Model (they need the skeleton)"; return false; }
+
+    const std::string rel = ImportAsset(src, root, "models", err); // your ImportTexture, generalized below
+    if (rel.empty()) return false;
+
+    comp::MeshComponent mc;
+    mc.meshID = ctx.p_meshSystem->RegisterMesh(std::move(model.meshes[0]));
+    ctx.p_scene->InsertComponent(e, mc);
+    ctx.p_scene->InsertComponent(e, comp::MeshRefComponent{rel, 0});
+    return true;
+}
+*/
+
+
+Entity SpawnEmpty(EngineContext &ctx, std::string_view name) {
+    Entity entity = ctx.p_scene->CreateEntity();
+    ctx.p_transformSystem->AddTransform(entity);
+    if (!name.empty()) {
+        comp::NameComponent nameComp;
+        nameComp.name = name;
+        ctx.p_scene->InsertComponent(entity, nameComp);
+    }
+    return entity;
+}
+
+

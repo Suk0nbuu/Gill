@@ -2,10 +2,11 @@
 #include "scene/scene.hpp"
 #include "editor/registry/registry.hpp"
 #include "imgui.h"
-#include "nfd.h"
+#include "editor/dialog/filePicker.hpp"
 #include <filesystem>
 #include <optional>
 #include "stb_image.h"
+#include "core/project/projectPath.hpp"
 
 namespace {
     std::string ImportTexture(const std::filesystem::path& src, const std::filesystem::path& root, std::string& err) {
@@ -22,15 +23,6 @@ namespace {
             if (ec) { err = "copy failed: " + ec.message(); return {}; }
         }
         return std::filesystem::relative(dst, root, ec).generic_string();
-    }
-
-    std::optional<std::filesystem::path> PickImageFile() {
-        nfdu8char_t* out = nullptr;
-        nfdu8filteritem_t filters[1] = {{"Images", "png,jpg,jpeg,tga,bmp"}};
-        if (NFD_OpenDialogU8(&out, filters, 1, nullptr) != NFD_OKAY) return std::nullopt;
-        std::filesystem::path p = std::filesystem::u8path(reinterpret_cast<const char*>(out));
-        NFD_FreePathU8(out);
-        return p;
     }
 }
 bool HasMaterial(const EngineContext& ctx, Entity e) {
@@ -81,10 +73,10 @@ bool DrawMaterialInspector(EditorContext& ctx, Entity e) {
             ImGui::PushID(p.name.c_str());
             ImGui::TextUnformatted(p.name.c_str()); ImGui::SameLine();
             const std::string label = t->path.empty() ? "None (click to choose)" : std::filesystem::path(t->path).filename().string();
-            const std::filesystem::path& root = ctx.p_materialSystem->GetProjectRoot();
+            const std::filesystem::path& root = ctx.p_projectPaths->Root();
             if (root.empty()) { ImGui::TextDisabled("No project open"); }
             if (ImGui::Button(label.c_str())) {
-                if (auto picked = PickImageFile()) {
+                if (auto picked = FilePicker::PickImageFile()) {
                     std::string err;
                     const std::string rel = ImportTexture(*picked, root, err);
                     if (!rel.empty()) { t->path = rel; t->handle = ctx.p_materialSystem->GetOrLoadTexture(rel); changed = true; }

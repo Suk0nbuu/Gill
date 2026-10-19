@@ -28,6 +28,7 @@ class EditorInputMap;
 class SelectionManager;
 class ArmatureSystem;
 class GizmoAdapter;
+class ProjectPaths;
 
 using MouseEvent = EventDelegate<int,int>;
 
@@ -36,7 +37,7 @@ using MouseEvent = EventDelegate<int,int>;
 class Editor {
 public:
     Editor();
-    void Init(float width, float height,Window* window,Scene* scene,Input* input,const mathpp::mat4f& projection,Camera* camera,TransformSystem* transformSystem,Hierarchy* hierarchy,MeshSystem* meshSystem, MaterialSystem* materialSystem,Renderer* renderer,ArmatureSystem* armatureSystem);
+    void Init(float width, float height,Window* window,Scene* scene,Input* input,const mathpp::mat4f& projection,Camera* camera,TransformSystem* transformSystem,Hierarchy* hierarchy,MeshSystem* meshSystem, MaterialSystem* materialSystem,Renderer* renderer,ArmatureSystem* armatureSystem,ProjectPaths* projectPaths);
     void Run(float deltaT);
     void ShutDown();
     ~Editor();
@@ -70,6 +71,7 @@ private:
     TransformSystem* p_transformSystem;
     ArmatureSystem* p_armatureSystem;
     Renderer* p_renderer;
+    ProjectPaths* p_projectPaths;
     std::vector<std::pair<MouseEvent*, MouseEvent::Handle>> v_handles;
     mathpp::mat4f m_proj;
 };
