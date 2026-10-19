@@ -86,7 +86,8 @@ Material MaterialSystem::MakeMaterial(const std::string& key) {
 }
 
 
-MaterialSystem::MaterialSystem() {
+MaterialSystem::MaterialSystem(ProjectPaths* projectPaths) {
+    p_projectPath = projectPaths;
     m_defs["builtin:brdf"] = { "asset/shader/core/surfaceVert.glsl", "asset/shader/pbr/brdf/brdfFrag.glsl", {
         {"albedo",    PropType::Color3, mathpp::vec3f{0.8f,0.8f,0.8f}},
         {"metallic",  PropType::Float,  0.2f, 0.0f,  1.0f},

@@ -105,6 +105,8 @@ add_library(engine STATIC
         include/core/ops/modelOps.hpp
         src/core/ops/primitiveOps.cpp
         src/core/ops/lightOps.cpp
+        src/core/project/projectPath.cpp
+        src/core/ops/modelOps.cpp
 
 
 )

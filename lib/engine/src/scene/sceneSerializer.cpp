@@ -6,6 +6,8 @@
 #include "core/system/mesh/mesh.hpp"
 #include <algorithm>
 #include "nlohmann/json.hpp"
+#include "core/project/projectPath.hpp"
+#include "io/gltf/gltf.hpp"
 #include <unordered_map>
 #include <fstream>
 #include <cmath>
@@ -133,10 +135,10 @@ bool ReadFloats(const json& obj, const char* key, float (&out)[N], std::string& 
         if (local.prim.segments < 3 || local.prim.segments > 128) { error = "segments out of range (3-128)"; return false; }
         if (!(local.prim.radius > 0.0f) || local.prim.radius > 100.0f) { error = "radius out of range (0-100]"; return false; }
         if (!(local.prim.height > 0.0f) || local.prim.height > 100.0f) { error = "height out of range (0-100]"; return false; }
-        local.hasMesh = true;
+        local.hasPrimitive = true;
     }
     else {
-        local.hasMesh = false;
+        local.hasPrimitive = false;
         }
 
         if (entity.contains("material")) {
@@ -209,6 +211,17 @@ bool ReadFloats(const json& obj, const char* key, float (&out)[N], std::string& 
             local.light = d;
             local.hasLight = true;
         }
+        if (entity.contains("meshRef")) {
+            if (!entity["meshRef"].is_object()) { error = "'meshRef' must be an object"; return false; }
+            if (local.hasPrimitive) { error = "entity has both 'primitive' and 'meshRef'"; return false; }
+            const json& r = entity["meshRef"];
+            if (!Read(r, "path", local.meshRef.path, error)) return false;
+            if (!Read(r, "index", local.meshRef.index, error)) return false;
+            const std::string& p = local.meshRef.path;
+            if (p.empty() || p.find('\\') != std::string::npos || !IsSafeRelativePath(p)) { error = "meshRef path is not safe"; return false; }
+            if (local.meshRef.index < 0 || local.meshRef.index > 4096) { error = "meshRef index out of range"; return false; }
+            local.hasMeshRef = true;
+        }
 
     out = local;
     return true;
@@ -218,12 +231,8 @@ bool ReadFloats(const json& obj, const char* key, float (&out)[N], std::string& 
 
 
 
-SceneSerializer::SceneSerializer(Scene *scene, TransformSystem *transformSystem, Hierarchy *hierarchy, MeshSystem *meshSystem,MaterialSystem* materialSystem) {
-    p_hierarchy = hierarchy;
-    p_transformSystem = transformSystem;
-    p_meshSystem = meshSystem;
-    p_scene = scene;
-    p_materialSystem = materialSystem;
+SceneSerializer::SceneSerializer(EngineContext context) {
+    m_ctx = context;
 }
 
 bool SceneSerializer::Parse(const std::string& text, std::vector<Entry>& out, std::string& error) {
@@ -302,39 +311,52 @@ bool SceneSerializer::Apply(const std::vector<Entry> &entries,std::string& error
     idToEntity.reserve(entries.size());
     for (size_t i = 0; i < entries.size(); ++i) {
         const Entry& e = entries[i];
-        Entity ent = p_scene->CreateEntity();
+        Entity ent = m_ctx.p_scene->CreateEntity();
         idToEntity.emplace(e.id, ent);
-        p_transformSystem->AddTransform(ent);
-        p_transformSystem->SetPosition(ent,e.pos);
-        p_transformSystem->SetRotation(ent,e.rot);
-        p_transformSystem->SetScale(ent,e.scale);
+        m_ctx.p_transformSystem->AddTransform(ent);
+        m_ctx.p_transformSystem->SetPosition(ent,e.pos);
+        m_ctx.p_transformSystem->SetRotation(ent,e.rot);
+        m_ctx.p_transformSystem->SetScale(ent,e.scale);
 
-        if (e.hasMesh == true) {
+        if (e.hasPrimitive == true) {
             comp::MeshComponent meshComp;
-            meshComp.meshID = p_meshSystem->AddPrimitive(e.prim.type,e.prim.rings,e.prim.segments,e.prim.radius,e.prim.height);
-            p_scene->InsertComponent(ent,meshComp);
-            p_scene->InsertComponent(ent,e.prim);
+            meshComp.meshID = m_ctx.p_meshSystem->AddPrimitive(e.prim.type,e.prim.rings,e.prim.segments,e.prim.radius,e.prim.height);
+            m_ctx.p_scene->InsertComponent(ent,meshComp);
+            m_ctx.p_scene->InsertComponent(ent,e.prim);
         }
         if (e.hasMaterial) {
-            Material mat = p_materialSystem->MakeMaterial(e.mat.shader);
-            if (!p_materialSystem->GetShaderDef(e.mat.shader)) { error = "unsupported shader: " + e.mat.shader; return false; }
+            Material mat = m_ctx.p_materialSystem->MakeMaterial(e.mat.shader);
+            if (!m_ctx.p_materialSystem->GetShaderDef(e.mat.shader)) { error = "unsupported shader: " + e.mat.shader; return false; }
             for (const auto& [name, value] : e.mat.props)
                 for (auto& p : mat.props)
                     if (p.name == name && p.value.index() == value.index()) { p.value = value; break; }
 
             for (auto& p : mat.props)
                 if (auto* t = std::get_if<TextureRef>(&p.value); t && !t->path.empty())
-                    t->handle = p_materialSystem->GetOrLoadTexture(t->path);
+                    t->handle = m_ctx.p_materialSystem->GetOrLoadTexture(t->path);
             comp::MaterialComponent mc;
-            mc.materialID = p_materialSystem->RegisterMaterial(std::move(mat));
-            p_scene->InsertComponent(ent, mc);
+            mc.materialID = m_ctx.p_materialSystem->RegisterMaterial(std::move(mat));
+            m_ctx.p_scene->InsertComponent(ent, mc);
         }
-        if (e.hasLight) p_scene->InsertComponent(ent, e.light);
+        if (e.hasLight) m_ctx.p_scene->InsertComponent(ent, e.light);
+
+        if (e.hasMeshRef) {
+            const auto full = m_ctx.p_projectPaths->Root() / e.meshRef.path;
+            GLTFModel model = LoadGLTF(full.string());
+            if (!model.error.empty() || size_t(e.meshRef.index) >= model.meshes.size()) {
+                /* log: "mesh '<path>' #<index> could not be loaded" */
+            } else {
+                comp::MeshComponent mc;
+                mc.meshID = m_ctx.p_meshSystem->RegisterMesh(std::move(model.meshes[e.meshRef.index]));
+                m_ctx.p_scene->InsertComponent(ent, mc);
+                m_ctx.p_scene->InsertComponent(ent, comp::MeshRefComponent{e.meshRef.path, e.meshRef.index});
+            }
+        }
 
         if (!e.name.empty()) {
             comp::NameComponent nameComp;
             nameComp.name = e.name;
-            p_scene->InsertComponent(ent, nameComp);
+            m_ctx.p_scene->InsertComponent(ent, nameComp);
         }
     }
 
@@ -343,8 +365,8 @@ bool SceneSerializer::Apply(const std::vector<Entry> &entries,std::string& error
         const Entry& e = entries[i];
         if (e.parent == NO_PARENT) continue;
         const Entity child = idToEntity.at(e.id);
-        p_hierarchy->SetParent(child, idToEntity.at(e.parent));
-        p_transformSystem->MarkDirty(child);
+        m_ctx.p_hierarchy->SetParent(child, idToEntity.at(e.parent));
+        m_ctx.p_transformSystem->MarkDirty(child);
     }
     return  true;
 }
@@ -369,7 +391,7 @@ bool SceneSerializer::Save(const std::filesystem::path& path, std::string& error
     // pass 1: pick which entities are saved and give each a sequential file id
     std::unordered_map<Entity, int> entityToId;
     std::vector<Entity> saved;
-    for (Entity e : p_scene->GetLivingEntities()) {
+    for (Entity e : m_ctx.p_scene->GetLivingEntities()) {
         entityToId.emplace(e, static_cast<int>(saved.size()));
         saved.push_back(e);
     }
@@ -384,8 +406,8 @@ bool SceneSerializer::Save(const std::filesystem::path& path, std::string& error
 
         int parentId = NO_PARENT;
         uint32_t temp;
-        if (p_hierarchy->HasParent(e)) {
-            temp = p_hierarchy->TryGetParent(e).value();
+        if (m_ctx.p_hierarchy->HasParent(e)) {
+            temp = m_ctx.p_hierarchy->TryGetParent(e).value();
             if (entityToId.contains(temp)) {
                 parentId = entityToId.at(temp);
             }
@@ -393,10 +415,10 @@ bool SceneSerializer::Save(const std::filesystem::path& path, std::string& error
         // look up e's parent in Hierarchy; if it has one AND it's in entityToId,
         // parentId = entityToId.at(parent). Otherwise it stays -1.
         item["parent"] = parentId;
-        const comp::TransformComponent& tComp = p_transformSystem->GetTransform(e);
-        const comp::PrimitiveComponent* pComp = p_scene->TryGetComponent<comp::PrimitiveComponent>(e);
-        const comp::NameComponent* nComp = p_scene->TryGetComponent<comp::NameComponent>(e);
-        const comp::MaterialComponent* mComp = p_scene->TryGetComponent<comp::MaterialComponent>(e);
+        const comp::TransformComponent& tComp = m_ctx.p_transformSystem->GetTransform(e);
+        const comp::PrimitiveComponent* pComp = m_ctx.p_scene->TryGetComponent<comp::PrimitiveComponent>(e);
+        const comp::NameComponent* nComp = m_ctx.p_scene->TryGetComponent<comp::NameComponent>(e);
+        const comp::MaterialComponent* mComp = m_ctx.p_scene->TryGetComponent<comp::MaterialComponent>(e);
         item["transform"] = {{"pos",{tComp.position.x,tComp.position.y,tComp.position.z}},{"rot",{tComp.rotation.w,tComp.rotation.x,tComp.rotation.y,tComp.rotation.z}},{"scale",{tComp.scale.x,tComp.scale.y,tComp.scale.z}}};
         if (pComp) {
             item["primitive"] = {{"type",std::string(magic_enum::enum_name(pComp->type))},{"rings",pComp->rings},{"segments",pComp->segments},{"height",pComp->height},{"radius",pComp->radius}};
@@ -406,7 +428,7 @@ bool SceneSerializer::Save(const std::filesystem::path& path, std::string& error
             item["name"] = nComp->name;
         }
         if (mComp) {
-            const Material* mat = p_materialSystem->GetMaterial(mComp->materialID);
+            const Material* mat = m_ctx.p_materialSystem->GetMaterial(mComp->materialID);
             if (mat) {
                 json m;
                 m["shader"] = mat->shaderKey.empty() ? "builtin:brdf" : mat->shaderKey;
@@ -423,7 +445,7 @@ bool SceneSerializer::Save(const std::filesystem::path& path, std::string& error
             }
         }
 
-        if (const comp::LightComponent* lComp = p_scene->TryGetComponent<comp::LightComponent>(e)) {
+        if (const comp::LightComponent* lComp = m_ctx.p_scene->TryGetComponent<comp::LightComponent>(e)) {
             item["light"] = {
                 {"type",      std::string(magic_enum::enum_name(lComp->type))},
                 {"color",     {lComp->color.x, lComp->color.y, lComp->color.z}},
@@ -433,6 +455,8 @@ bool SceneSerializer::Save(const std::filesystem::path& path, std::string& error
                 {"blend",     lComp->blend}
             };
         }
+        if (const auto* ref = m_ctx.p_scene->TryGetComponent<comp::MeshRefComponent>(e))
+            item["meshRef"] = {{"path", ref->path}, {"index", ref->index}};
 
         entities.push_back(std::move(item));
     }

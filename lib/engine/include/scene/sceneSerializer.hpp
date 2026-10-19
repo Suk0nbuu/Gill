@@ -5,6 +5,7 @@
 #include <utility>
 #include "mathpp.hpp"
 #include "scene/scene.hpp"
+#include "core/engine/engineContext.hpp"
 class TransformSystem;
 class Hierarchy;
 class MeshSystem;
@@ -25,18 +26,20 @@ struct Entry {
     mathpp::vec3f scale;
     comp::PrimitiveComponent prim;
     comp::LightComponent light;
+    comp::MeshRefComponent meshRef;
     MaterialData mat;
-    bool hasMesh = false;
+    bool hasPrimitive = false;
     bool hasMaterial = false;
     bool hasLight = false;
+    bool hasMeshRef = false;
 };
 
 
-
+struct EngineContext;
 
 class SceneSerializer {
 public:
-    SceneSerializer(Scene* scene, TransformSystem* transforms, Hierarchy* hierarchy, MeshSystem* meshes, MaterialSystem* materialSystem);
+    SceneSerializer(EngineContext context);
 
 
     bool Save(const std::filesystem::path& path, std::string& error, int& skipped) const;
@@ -49,9 +52,5 @@ private:
 
 
 
-    Scene* p_scene;
-    TransformSystem* p_transformSystem;
-    Hierarchy* p_hierarchy;
-    MeshSystem* p_meshSystem;
-    MaterialSystem* p_materialSystem;
+   EngineContext m_ctx;
 };

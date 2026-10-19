@@ -3,6 +3,9 @@
 #include <memory>
 #include "mathpp.hpp"
 #include "core/system/material/material.hpp"
+#include "core/engine/engineContext.hpp"
+
+
 
 
 
@@ -21,6 +24,7 @@ public:
     Engine(const mathpp::mat4f& projection);
     ~Engine();
     void Init(unsigned int width, unsigned int height,Camera* cam,Scene* scene);
+    EngineContext& Context();
     void Run();
     void Shutdown();
     TransformSystem* GetTransformSystem();
@@ -42,7 +46,7 @@ private:
     std::unique_ptr<ProjectPaths> up_projectPaths;
     Camera* p_cam;
     Scene* p_scene;
-
+    EngineContext m_engineContext;
     mathpp::mat4f& m_proj;
 
 };

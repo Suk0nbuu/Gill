@@ -13,7 +13,7 @@ class ProjectPaths;
 
 class MaterialSystem {
 public:
-    MaterialSystem();
+    MaterialSystem(ProjectPaths* projectPaths);
     [[nodiscard]]const Material* GetMaterial(AssetHandle handle) const;
     [[nodiscard]] Material* GetMaterial(AssetHandle handle);
     [[nodiscard]] AssetHandle GetShaderByKey(const std::string& key);
@@ -53,7 +53,7 @@ private:
 
     std::unordered_map<std::string, ShaderDef>    m_defs;      // key -> definition
     std::unordered_map<std::string, AssetHandle>  m_handles;   // key -> loaded shader (lazy)
-    ProjectPaths* p_projectPath;
+    ProjectPaths* p_projectPath = nullptr;
 
 
 };
