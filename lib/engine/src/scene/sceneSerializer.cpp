@@ -11,6 +11,10 @@
 #include <unordered_map>
 #include <fstream>
 #include <cmath>
+#include "shaderGraph/nodeRegistry.hpp"
+#include <unordered_set>
+#include <variant>
+#include <iostream>
 
 using json = nlohmann::json;
 
@@ -70,6 +74,141 @@ bool ReadFloats(const json& obj, const char* key, float (&out)[N], std::string& 
         for (const auto& part : p) if (part == "..") return false;
         return true;
     }
+
+    constexpr size_t MAX_GRAPH_NODES = 512;
+constexpr size_t MAX_GRAPH_LINKS = 2048;
+
+json GraphToJson(const ShaderGraph& g) {
+    json j;
+    j["outputNode"] = g.outputNode;
+
+    json nodes = json::array();
+    for (const GraphNode& n : g.nodes) {
+        json jn;
+        jn["id"]   = n.id;
+        jn["type"] = n.type;
+        jn["pos"]  = json::array({n.posX, n.posY});
+        json inputs = json::array();
+        for (const SocketValue& v : n.inputValues)
+            std::visit([&](const auto& x) {
+                using T = std::decay_t<decltype(x)>;
+                if constexpr (std::is_same_v<T, float>) inputs.push_back(x);
+                else                                    inputs.push_back(json::array({x.x, x.y, x.z}));
+            }, v);
+        jn["inputs"] = std::move(inputs);
+        if (!n.image.path.empty()) jn["image"] = n.image.path;
+        nodes.push_back(std::move(jn));
+    }
+    j["nodes"] = std::move(nodes);
+
+    json links = json::array();
+    for (const GraphLink& l : g.links)
+        links.push_back(json::array({l.fromNode, l.fromSocket, l.toNode, l.toSocket}));
+    j["links"] = std::move(links);
+    return j;
+}
+
+bool ParseGraph(const json& j, ShaderGraph& out, std::string& error) {
+    if (!j.is_object()) { error = "'graph' must be an object"; return false; }
+    const NodeRegistry& reg = NodeRegistry::Get();
+    ShaderGraph g;
+
+    if (!Read(j, "outputNode", g.outputNode, error)) return false;
+    if (!j.contains("nodes") || !j["nodes"].is_array()) { error = "graph needs a 'nodes' array"; return false; }
+    const json& nodes = j["nodes"];
+    if (nodes.size() > MAX_GRAPH_NODES) { error = "graph has too many nodes"; return false; }
+
+    std::unordered_map<int, const NodeDef*> defOf;
+    int maxId = 0;
+    for (size_t i = 0; i < nodes.size(); ++i) {
+        const json& jn = nodes[i];
+        const std::string at = "nodes[" + std::to_string(i) + "]: ";
+        if (!jn.is_object()) { error = at + "not an object"; return false; }
+
+        GraphNode n;
+        std::string type;
+        if (!Read(jn, "id", n.id, error) || !Read(jn, "type", type, error)) { error = at + error; return false; }
+        if (n.id < 0)             { error = at + "id must be >= 0"; return false; }
+        if (defOf.contains(n.id)) { error = at + "duplicate id " + std::to_string(n.id); return false; }
+        const NodeDef* def = reg.Find(type);
+        if (!def)                 { error = at + "unknown node type '" + type + "'"; return false; }
+        n.type = type;
+
+        if (jn.contains("pos")) {
+            float p[2];
+            if (!ReadFloats(jn, "pos", p, error)) { error = at + error; return false; }
+            n.posX = p[0]; n.posY = p[1];
+        }
+
+        for (const SocketDef& sd : def->in) n.inputValues.push_back(sd.def);   // start from the defaults
+        if (jn.contains("inputs")) {
+            const json& ins = jn["inputs"];
+            if (!ins.is_array() || ins.size() > def->in.size()) {
+                error = at + "'inputs' must be an array of at most " + std::to_string(def->in.size()) + " values";
+                return false;
+            }
+            for (size_t k = 0; k < ins.size(); ++k) {                         // fewer than expected is fine: the rest keep defaults
+                const json& v = ins[k];
+                const std::string where = at + "inputs[" + std::to_string(k) + "] ";
+                if (def->in[k].type == SocketType::Float) {
+                    if (!v.is_number() || !std::isfinite(v.get<float>())) { error = where + "must be a number"; return false; }
+                    n.inputValues[k] = v.get<float>();
+                } else {
+                    const bool ok = v.is_array() && v.size() == 3 &&
+                        std::all_of(v.begin(), v.end(), [](const json& x) { return x.is_number() && std::isfinite(x.get<float>()); });
+                    if (!ok) { error = where + "must be [r,g,b]"; return false; }
+                    n.inputValues[k] = mathpp::vec3f{v[0].get<float>(), v[1].get<float>(), v[2].get<float>()};
+                }
+            }
+        }
+
+        if (jn.contains("image") && !jn["image"].is_null()) {
+            if (!jn["image"].is_string()) { error = at + "'image' must be a string or null"; return false; }
+            const std::string path = jn["image"].get<std::string>();
+            if (path.find('\\') != std::string::npos || !IsSafeRelativePath(path)) { error = at + "image path is not safe"; return false; }
+            n.image.path = path;                 // the handle is resolved by MaterialSystem::CompileGraph
+        }
+
+        defOf.emplace(n.id, def);
+        maxId = std::max(maxId, n.id);
+        g.nodes.push_back(std::move(n));
+    }
+    g.nextId = maxId + 1;
+
+    auto outIt = defOf.find(g.outputNode);
+    if (outIt == defOf.end() || !outIt->second->isOutput) { error = "'outputNode' must refer to an output node"; return false; }
+
+    if (!j.contains("links") || !j["links"].is_array()) { error = "graph needs a 'links' array"; return false; }
+    const json& links = j["links"];
+    if (links.size() > MAX_GRAPH_LINKS) { error = "graph has too many links"; return false; }
+
+    std::unordered_set<long long> usedInputs;                                  // one link per input socket
+    for (size_t i = 0; i < links.size(); ++i) {
+        const json& l = links[i];
+        const std::string at = "links[" + std::to_string(i) + "]: ";
+        if (!l.is_array() || l.size() != 4 ||
+            !std::all_of(l.begin(), l.end(), [](const json& x) { return x.is_number_integer(); })) {
+            error = at + "must be [fromNode, fromSocket, toNode, toSocket]"; return false;
+        }
+        const GraphLink gl{l[0].get<int>(), l[1].get<int>(), l[2].get<int>(), l[3].get<int>()};
+
+        auto from = defOf.find(gl.fromNode);
+        auto to   = defOf.find(gl.toNode);
+        if (from == defOf.end() || to == defOf.end()) { error = at + "refers to a missing node"; return false; }
+        if (gl.fromNode == gl.toNode)                 { error = at + "a node can't link to itself"; return false; }
+        if (gl.fromSocket < 0 || gl.fromSocket >= static_cast<int>(from->second->out.size()) ||
+            gl.toSocket   < 0 || gl.toSocket   >= static_cast<int>(to->second->in.size())) {
+            error = at + "socket index out of range"; return false;
+        }
+        if (!usedInputs.insert(static_cast<long long>(gl.toNode) * 1024 + gl.toSocket).second) {
+            error = at + "input socket already has a link"; return false;
+        }
+        g.links.push_back(gl);
+    }
+
+    out = std::move(g);
+    return true;
+}
 
     bool ParseEntity(const json& entity, Entry& out, std::string& error) {
     if (!entity.is_object()) {
@@ -165,6 +304,11 @@ bool ReadFloats(const json& obj, const char* key, float (&out)[N], std::string& 
                     } else { error = "property '" + name + "' prop value must be a number, [r,g,b], a path string, or null "; return false; }
                 }
             }
+            if (m.contains("graph") && !m["graph"].is_null()) {
+                ShaderGraph g;
+                if (!ParseGraph(m["graph"], g, error)) { error = "material.graph: " + error; return false; }
+                d.graph = std::move(g);
+            }
 
             else {
                 float albedo[3], roughness, metallic;
@@ -222,6 +366,9 @@ bool ReadFloats(const json& obj, const char* key, float (&out)[N], std::string& 
             if (local.meshRef.index < 0 || local.meshRef.index > 4096) { error = "meshRef index out of range"; return false; }
             local.hasMeshRef = true;
         }
+
+
+
 
     out = local;
     return true;
@@ -334,6 +481,12 @@ bool SceneSerializer::Apply(const std::vector<Entry> &entries,std::string& error
             for (auto& p : mat.props)
                 if (auto* t = std::get_if<TextureRef>(&p.value); t && !t->path.empty())
                     t->handle = m_ctx.p_materialSystem->GetOrLoadTexture(t->path);
+            if (e.mat.graph) {
+                mat.graph = e.mat.graph;
+                std::string graphErr;
+                if (!m_ctx.p_materialSystem->CompileGraph(mat, graphErr))
+                    std::cerr << "material graph could not be compiled, using builtin shader: " << graphErr << "\n";
+            }
             comp::MaterialComponent mc;
             mc.materialID = m_ctx.p_materialSystem->RegisterMaterial(std::move(mat));
             m_ctx.p_scene->InsertComponent(ent, mc);
@@ -352,6 +505,7 @@ bool SceneSerializer::Apply(const std::vector<Entry> &entries,std::string& error
                 m_ctx.p_scene->InsertComponent(ent, comp::MeshRefComponent{e.meshRef.path, e.meshRef.index});
             }
         }
+
 
         if (!e.name.empty()) {
             comp::NameComponent nameComp;
@@ -431,6 +585,7 @@ bool SceneSerializer::Save(const std::filesystem::path& path, std::string& error
             const Material* mat = m_ctx.p_materialSystem->GetMaterial(mComp->materialID);
             if (mat) {
                 json m;
+                if (mat->graph) m["graph"] = GraphToJson(*mat->graph);
                 m["shader"] = mat->shaderKey.empty() ? "builtin:brdf" : mat->shaderKey;
                 json props = json::object();
                 for (const auto& p : mat->props)

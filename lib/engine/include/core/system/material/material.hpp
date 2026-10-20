@@ -6,6 +6,7 @@
 #include <string>
 #include <filesystem>
 #include <unordered_map>
+#include "render/shader/genShaderCache.hpp"
 
 
 
@@ -39,6 +40,8 @@ public:
 
 
     AssetHandle GetOrLoadTexture(const std::string& relPath);
+    bool CompileGraph(Material& m, std::string& err);
+    const CodegenResult& GetGeneratedProgram(int id) const { return m_generatedShaders.Program(id); }
 
 
 
@@ -54,6 +57,7 @@ private:
     std::unordered_map<std::string, ShaderDef>    m_defs;      // key -> definition
     std::unordered_map<std::string, AssetHandle>  m_handles;   // key -> loaded shader (lazy)
     ProjectPaths* p_projectPath = nullptr;
+    GeneratedShaderCache m_generatedShaders;
 
 
 };

@@ -3,7 +3,7 @@
 #include <vector>
 #include <string>
 #include "mathpp.hpp"
-#include "component/material.hpp"
+#include "component/textureRef.hpp"
 
 enum class SocketType { Float, Vec3, Color };           // Vec3 and Color are both GLSL vec3
 using SocketValue = std::variant<float, mathpp::vec3f>;
@@ -23,4 +23,9 @@ struct ShaderGraph {
     std::vector<GraphLink> links;
     int outputNode = -1;
     int nextId = 1;
+    const GraphNode* Find(int id) const {
+        for (const auto& n : nodes) if (n.id == id) return &n;
+        return nullptr;
+    }
 };
+

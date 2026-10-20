@@ -1,6 +1,7 @@
 #include "core/system/material/material.hpp"
 #include <algorithm>
 #include "core/project/projectPath.hpp"
+#include "shaderGraph/nodeRegistry.hpp"
 
 const Material *MaterialSystem::GetMaterial(AssetHandle handle) const {
     if (m_materialManager.Has(handle)) {
@@ -134,4 +135,20 @@ AssetHandle MaterialSystem::GetOrLoadTexture(const std::string& rel) {
     AssetHandle h = LoadTextureFile(full.string());
     m_textureByPath.emplace(rel, h);
     return h;
+}
+
+bool MaterialSystem::CompileGraph(Material& m, std::string& err) {
+    m.graphShaderId = -1;
+    if (!m.graph) { err = "material has no graph"; return false; }
+
+    for (auto& n : m.graph->nodes) {                      // re-resolve texture handles from their saved paths
+        const NodeDef* def = NodeRegistry::Get().Find(n.type);
+        if (def && def->usesImage && !n.image.path.empty())
+            n.image.handle = GetOrLoadTexture(n.image.path);
+    }
+
+    CodegenResult r = GenerateFragment(*m.graph, NodeRegistry::Get());
+    if (!r.ok) { err = r.error; return false; }
+    m.graphShaderId = m_generatedShaders.Register(r);
+    return true;
 }

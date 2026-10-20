@@ -11,6 +11,7 @@
 #include "core/system/mesh/mesh.hpp"
 #include "render/shader/shaderVariant.hpp"
 #include "render/data/uniform.hpp"
+#include "shaderGraph/codegen.hpp"
 
 class LightSystem;
 class ArmatureSystem;
@@ -39,6 +40,7 @@ class Renderer {
     void renderScene(const Scene* scene,const mathpp::mat4f& view,const mathpp::mat4f& projection,const mathpp::vec3f& viewVec);
     void SetViewportMode(ViewportMode mode);
     ViewportMode GetViewportMode();
+    void UploadGraphMaterial(const Material& m, const CodegenResult& prog, const Shader& s) const;
 private:
     void UploadMaterial(const Material& m, const Shader& s) const;
     const Texture* FindMaterialTexture(const Material& m) const;

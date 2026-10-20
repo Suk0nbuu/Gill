@@ -112,6 +112,8 @@ add_library(engine STATIC
         src/shaderGraph/nodeRegistry.cpp
         include/shaderGraph/codeGen.hpp
         src/shaderGraph/codeGen.cpp
+        include/render/shader/genShaderCache.hpp
+        include/component/textureRef.hpp
 
 
 )

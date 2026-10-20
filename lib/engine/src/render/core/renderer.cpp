@@ -79,10 +79,19 @@ void Renderer::DrawEntity(const Scene* scene, Entity entity,
 
         if (features & Feature_Skinning) UploadSkinningPalette(scene, entity);
     } else if (em_viewportMode == ViewportMode::Rendered) {
-        const Shader* baseShader = mat ? p_materialSystem->GetShader(mat->shaderID) : nullptr;
-        const Shader* shader = baseShader ? baseShader : solidShader.get();
-        shader->Use();
-        if (mat) UploadMaterial(*mat, *shader);
+        Shader* shader = nullptr;
+        if (mat && mat->graph && mat->graphShaderId >= 0) {
+            const CodegenResult& prog = p_materialSystem->GetGeneratedProgram(mat->graphShaderId);
+            Shader* g = m_shaderCache.GetGenerated(kSurfaceVert, mat->graphShaderId, prog.fragSource, features);
+            if (g->IsValid()) { g->Use(); UploadGraphMaterial(*mat, prog, *g); shader = g; }
+        } else if (mat) {
+            if (const ShaderDef* def = p_materialSystem->GetShaderDef(mat->shaderKey)) {
+                Shader* s = m_shaderCache.Get(def->vert, def->frag, features);
+                if (s->IsValid()) { s->Use(); UploadMaterial(*mat, *s); shader = s; }
+            }
+        }
+        if (!shader) { solidShader->Use(); shader = solidShader.get(); }   // missing or broken shader: same fallback as before
+
         shader->setMat4f("model", p_transformSystem->GetWorldTransform(entity));
         if (features & Feature_Skinning) UploadSkinningPalette(scene, entity);
     }
@@ -162,4 +171,27 @@ const comp::ArmatureComponent* Renderer::FindArmature(const Scene* scene, Entity
         e = *parent;
     }
     return nullptr;
+}
+
+void Renderer::UploadGraphMaterial(const Material& m, const CodegenResult& prog, const Shader& s) const {
+    const ShaderGraph& g = *m.graph;
+
+    for (const auto& u : prog.uniforms) {
+        const GraphNode* n = g.Find(u.nodeId);
+        if (!n || u.socketIndex >= static_cast<int>(n->inputValues.size())) continue;
+        const SocketValue& v = n->inputValues[u.socketIndex];
+        if (u.type == SocketType::Float) {
+            if (const float* f = std::get_if<float>(&v)) s.setFloat(u.name, *f);
+        } else {
+            if (const mathpp::vec3f* c = std::get_if<mathpp::vec3f>(&v)) s.setVec3f(u.name, *c);
+        }
+    }
+
+    int slot = 0;
+    for (const auto& t : prog.textures) {
+        const GraphNode* n = g.Find(t.nodeId);
+        const Texture* tex = n ? p_materialSystem->GetTexture(n->image.handle) : nullptr;
+        s.setInt("has_" + t.name, tex ? 1 : 0);
+        if (tex) { tex->Bind(slot); s.setInt(t.name, slot++); }
+    }
 }

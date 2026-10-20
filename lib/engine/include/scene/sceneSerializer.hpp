@@ -14,6 +14,7 @@ struct MaterialData {
     std::string shader = "builtin:brdf";
     std::string texture;
     std::vector<std::pair<std::string, PropValue>> props;
+    std::optional<ShaderGraph> graph;
 };
 
 
@@ -32,6 +33,7 @@ struct Entry {
     bool hasMaterial = false;
     bool hasLight = false;
     bool hasMeshRef = false;
+
 };
 
 

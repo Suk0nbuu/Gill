@@ -120,8 +120,8 @@ CodegenResult GenerateFragment(const ShaderGraph& g, const NodeRegistry& reg) {
 
     R.fragSource =
         "#version 330 core\n\n"
-        "#include \"../core/camera.glsl\"\n"          // include base dir is a Shader-from-source question (next step)
-        "#include \"../core/light.glsl\"\n\n"
+        "#include \"camera.glsl\"\n"
+        "#include \"light.glsl\"\n\n"
         "in vec3 normals;\nin vec3 fragPos;\nin vec2 vUV;\n\n"
         + decls +
         "\nout vec4 fragColor;\n\nvoid main() {\n"

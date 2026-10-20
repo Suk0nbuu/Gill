@@ -11,6 +11,7 @@ enum ShaderFeature : uint32_t {
 class ShaderVariantCache {
 public:
     Shader* Get(const std::string& vertPath, const std::string& fragPath, uint32_t features);
+    Shader* GetGenerated(const std::string& vertPath, int genId,const std::string& fragSource, uint32_t features);
 private:
     struct Key {
         std::string vertPath, fragPath;

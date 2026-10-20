@@ -9,32 +9,6 @@
 #include "render/data/bindings.hpp"
 
 
-std::string Shader::LoadShaderSourceWithIncludes(const std::string& path) {
-    std::ifstream file(path);
-    if (!file.is_open()) {
-        std::cerr << "Failed to open shader file: " << path << std::endl;
-        return "";
-    }
-
-    std::stringstream result;
-    std::string line;
-    while (std::getline(file, line)) {
-        if (line.rfind("#include", 0) == 0) {
-            size_t firstQuote = line.find('"');
-            size_t lastQuote = line.rfind('"');
-            if (firstQuote == std::string::npos || lastQuote == firstQuote) {
-                std::cerr << "Malformed #include in " << path << ": " << line << std::endl;
-                continue;
-            }
-            std::string includeName = line.substr(firstQuote + 1, lastQuote - firstQuote - 1);
-            std::string includePath = std::filesystem::path(path).parent_path().string() + "/" + includeName;
-            result << LoadShaderSourceWithIncludes(includePath); // recursive — nested includes work too
-        } else {
-            result << line << "\n";
-        }
-    }
-    return result.str();
-}
 
 
 
@@ -71,15 +45,20 @@ Shader::~Shader() {
     glDeleteProgram(m_ID);
 }
 
-Shader::Shader(Shader&& other) noexcept : m_ID(other.m_ID) {
+Shader::Shader(Shader&& other) noexcept
+    : m_ID(other.m_ID), m_valid(other.m_valid), m_error(std::move(other.m_error)) {
     other.m_ID = 0;
+    other.m_valid = false;
 }
 
 Shader& Shader::operator=(Shader&& other) noexcept {
     if (this != &other) {
-        glDeleteProgram(m_ID);   // clean up whatever this Shader currently owns
+        glDeleteProgram(m_ID);
         m_ID = other.m_ID;
+        m_valid = other.m_valid;
+        m_error = std::move(other.m_error);
         other.m_ID = 0;
+        other.m_valid = false;
     }
     return *this;
 }
@@ -93,74 +72,102 @@ void Shader::setMat3f(const std::string &name, const mathpp::mat3f &matrix) cons
 
 
 Shader::Shader(const std::string& vertPath, const std::string& fragPath, const std::string& defines) {
-    std::string vertStr = LoadShaderSourceWithIncludes(vertPath);
-    std::string fragStr = LoadShaderSourceWithIncludes(fragPath);
+    Build(LoadShaderSourceWithIncludes(vertPath), LoadShaderSourceWithIncludes(fragPath),
+          defines, vertPath + " | " + fragPath);
+}
 
+Shader Shader::FromGeneratedFragment(const std::string& vertPath, const std::string& fragSource,const std::string& includeDir, const std::string& defines) {
+    Shader s;
+    std::istringstream in(fragSource);
+    s.Build(LoadShaderSourceWithIncludes(vertPath),
+            ExpandIncludes(in, includeDir, "<generated>"),
+            defines, "generated fragment");
+    return s;
+}
+
+void Shader::Build(std::string vertStr, std::string fragStr, const std::string& defines, const std::string& label) {
     if (!defines.empty()) {
         vertStr = InjectDefines(vertStr, defines);
         fragStr = InjectDefines(fragStr, defines);
     }
+    if (vertStr.empty()) m_error += "Vertex source is empty (" + label + ")\n";
+    if (fragStr.empty()) m_error += "Fragment source is empty (" + label + ")\n";
 
-    if (vertStr.empty()) std::cerr << "Vertex shader source is empty: " << vertPath << std::endl;
-    if (fragStr.empty()) std::cerr << "Fragment shader source is empty: " << fragPath << std::endl;
-
-    const char* vertCode = vertStr.c_str();
-    const char* fragCode = fragStr.c_str();
-
-    unsigned int vertexShader, fragmentShader;
-
-    vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertexShader, 1, &vertCode, NULL);
-    int successv;
-    char infoLogv[512];
-
-    glCompileShader(vertexShader);
-    glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &successv);
-    if (!successv) {
-        glGetShaderInfoLog(vertexShader, 512, NULL, infoLogv);
-        std::cerr << "Vertex shader compile error:\n" << infoLogv << std::endl;
-    }
-    fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragmentShader, 1, &fragCode, NULL);
-    int successf;
-    char infoLogf[512];
-
-    glCompileShader(fragmentShader);
-    glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &successf);
-    if (!successf) {
-        glGetShaderInfoLog(fragmentShader, 512, NULL, infoLogf);
-        std::cerr << "Fragment shader compile error:\n" << infoLogf << std::endl;
-    }
-
-
-
-
+    auto compile = [&](GLenum type, const std::string& src, const char* what) -> unsigned int {
+        unsigned int id = glCreateShader(type);
+        const char* code = src.c_str();
+        glShaderSource(id, 1, &code, nullptr);
+        glCompileShader(id);
+        int ok = 0;
+        glGetShaderiv(id, GL_COMPILE_STATUS, &ok);
+        if (!ok) {
+            char log[2048];
+            glGetShaderInfoLog(id, sizeof(log), nullptr, log);
+            m_error += std::string(what) + " shader compile error (" + label + "):\n" + log + "\n";
+        }
+        return id;
+    };
+    unsigned int vs = compile(GL_VERTEX_SHADER, vertStr, "Vertex");
+    unsigned int fs = compile(GL_FRAGMENT_SHADER, fragStr, "Fragment");
 
     m_ID = glCreateProgram();
-    glAttachShader(m_ID, vertexShader);
-    glAttachShader(m_ID, fragmentShader);
+    glAttachShader(m_ID, vs);
+    glAttachShader(m_ID, fs);
     glLinkProgram(m_ID);
     glValidateProgram(m_ID);
-    int successLink;
-    glGetProgramiv(m_ID, GL_LINK_STATUS, &successLink);
-    if (!successLink) {
-        char infoLog[512];
-        glGetProgramInfoLog(m_ID, 512, NULL, infoLog);
-        std::cerr << "Shader program link error:\n" << infoLog << std::endl;
+    int linked = 0;
+    glGetProgramiv(m_ID, GL_LINK_STATUS, &linked);
+    if (!linked) {
+        char log[2048];
+        glGetProgramInfoLog(m_ID, sizeof(log), nullptr, log);
+        m_error += "Shader program link error (" + label + "):\n" + log + "\n";
     }
+    m_valid = (linked != 0);
+
     auto bindBlock = [&](const char* name, unsigned binding) {
         GLuint idx = glGetUniformBlockIndex(m_ID, name);
         if (idx != GL_INVALID_INDEX) glUniformBlockBinding(m_ID, idx, binding);
     };
     bindBlock("Camera", kCameraBinding);
     bindBlock("Skin",   kSkinBinding);
-    bindBlock("Lights",  kLightBinding);
-    glDeleteShader(vertexShader);
-    glDeleteShader(fragmentShader);
+    bindBlock("Lights", kLightBinding);
+
+    glDeleteShader(vs);
+    glDeleteShader(fs);
+    if (!m_error.empty()) std::cerr << m_error;
 }
 
 std::string Shader::InjectDefines(const std::string& source, const std::string& defines) {
     size_t versionEnd = source.find('\n');
     if (versionEnd == std::string::npos) return defines + source;
     return source.substr(0, versionEnd + 1) + defines + source.substr(versionEnd + 1);
+}
+
+std::string Shader::ExpandIncludes(std::istream& in, const std::filesystem::path& baseDir, const std::string& label) {
+    std::stringstream result;
+    std::string line;
+    while (std::getline(in, line)) {
+        if (line.rfind("#include", 0) == 0) {
+            size_t firstQuote = line.find('"');
+            size_t lastQuote = line.rfind('"');
+            if (firstQuote == std::string::npos || lastQuote == firstQuote) {
+                std::cerr << "Malformed #include in " << label << ": " << line << std::endl;
+                continue;
+            }
+            std::string includeName = line.substr(firstQuote + 1, lastQuote - firstQuote - 1);
+            result << LoadShaderSourceWithIncludes((baseDir / includeName).string());   // rekursif
+        } else {
+            result << line << "\n";
+        }
+    }
+    return result.str();
+}
+
+std::string Shader::LoadShaderSourceWithIncludes(const std::string& path) {
+    std::ifstream file(path);
+    if (!file.is_open()) {
+        std::cerr << "Failed to open shader file: " << path << std::endl;
+        return "";
+    }
+    return ExpandIncludes(file, std::filesystem::path(path).parent_path(), path);
 }

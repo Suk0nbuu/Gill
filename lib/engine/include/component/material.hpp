@@ -1,15 +1,15 @@
 #pragma once
 #include "core/system/asset/assetID.hpp"
+#include "component/textureRef.hpp"
+#include "shadergraph/graph.hpp"
+#include <optional>
 #include <string>
 #include <variant>
 #include <vector>
 #include "mathpp.hpp"
-struct TextureRef {
-    std::string path;
-    AssetHandle handle;
-};
+
 enum class PropType { Float, Color3, Texture };
-using PropValue = std::variant<float, mathpp::vec3f,TextureRef>;
+using PropValue = std::variant<float, mathpp::vec3f, TextureRef>;
 
 struct PropertyDecl { std::string name; PropType type; PropValue def; float min = 0, max = 1; };
 struct ShaderDef {
@@ -23,15 +23,14 @@ struct ShaderDef {
 
 struct MaterialProperty { std::string name; PropValue value; };
 struct Material {
-    std::string shaderKey;            // source of truth, serialized
+    std::string shaderKey;            // builtin shader key, serialized; ignored while `graph` is set
     AssetHandle shaderID;             // runtime cache, set together with shaderKey
     std::vector<MaterialProperty> props;
+    std::optional<ShaderGraph> graph; // when set, the material renders from this graph, serialized
+    int graphShaderId = -1;           // runtime cache from MaterialSystem::CompileGraph, never serialized
 };
 
 namespace comp {
-
-
-
     struct MaterialComponent {
         AssetHandle materialID;
     };
