@@ -43,19 +43,48 @@ bool App::Init(unsigned int width, unsigned int height) {
     return true;
 }
 
+#include "render/framebuffer/framebuffer.hpp"
+#include "editor/ui/viewportInfo.hpp"
 
 void App::Run() {
-    while (!up_window->ShouldClose() && ! m_closeRequested) {
+    while (!up_window->ShouldClose() && !m_closeRequested) {
         float currentTime = glfwGetTime();
         m_deltaTime = currentTime - m_lastFrame;
         m_lastFrame = currentTime;
         up_window->PollEvents();
-        glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+
+        int winW = 0, winH = 0;
+        up_window->GetFrameBufferSize(&winW, &winH);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);       // the window itself now only shows the UI
+
+        const ViewportInfo& vp = up_editor->GetViewportInfo();
+
+        // Who owns the mouse: the 3D view or the UI. While a button stays down, the answer
+        // from when the press began is kept, so a drag that leaves the image doesn't hand
+        // the mouse over to the UI halfway through.
+        const bool anyDown = up_input->IsMouseButtonDown(GLFW_MOUSE_BUTTON_LEFT) ||
+                             up_input->IsMouseButtonDown(GLFW_MOUSE_BUTTON_RIGHT) ||
+                             up_input->IsMouseButtonDown(GLFW_MOUSE_BUTTON_MIDDLE);
+        if (!(anyDown && m_mouseWasDown)) m_viewportActive = vp.hovered;
+        m_mouseWasDown = anyDown;
+        up_editor->SetViewportActive(m_viewportActive);            // picking/gizmo handlers read this
+
         up_input->Update();
-        up_camera->Update(up_input.get(),m_deltaTime,{0.0f,0.0f,0.0f},false);
+        up_camera->Update(up_input.get(), m_deltaTime, {0.0f, 0.0f, 0.0f}, !m_viewportActive);
+
+        Framebuffer& fb = up_editor->GetViewportFramebuffer();
+        if (vp.visible) {
+            fb.Resize(vp.width, vp.height);
+            UpdateProjection(static_cast<float>(vp.width) / static_cast<float>(vp.height));
+        } else {
+            fb.Resize(1, 1);
+        }
+        fb.Bind();
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         up_engine->Run();
+        Framebuffer::Unbind(winW, winH);
+
         up_editor->Run(m_deltaTime);
-        std::string err;
         up_input->ClearFrameState();
         up_window->SwapBuffers();
     }
@@ -74,6 +103,14 @@ App::~App() = default;
 bool App::LoadScene(std::string& error) {
     SceneSerializer ser(up_engine->Context());
     return ser.Load(m_project->ScenePath(), error);
+}
+
+void App::UpdateProjection(float aspect) {
+    if (std::abs(aspect - m_aspect) < 1e-4f) return;
+    m_aspect = aspect;
+    m_projection = mathpp::perspective(45.0f, m_aspect, 0.01f, 300.0f);
+    up_engine->SetProjection(m_projection);
+    up_editor->SetProjection(m_projection);
 }
 
 void App::SaveScene() {

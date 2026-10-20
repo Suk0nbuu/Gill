@@ -304,11 +304,6 @@ bool ParseGraph(const json& j, ShaderGraph& out, std::string& error) {
                     } else { error = "property '" + name + "' prop value must be a number, [r,g,b], a path string, or null "; return false; }
                 }
             }
-            if (m.contains("graph") && !m["graph"].is_null()) {
-                ShaderGraph g;
-                if (!ParseGraph(m["graph"], g, error)) { error = "material.graph: " + error; return false; }
-                d.graph = std::move(g);
-            }
 
             else {
                 float albedo[3], roughness, metallic;
@@ -323,6 +318,11 @@ bool ParseGraph(const json& j, ShaderGraph& out, std::string& error) {
             if (!ReadOptionalString(m, "shader",  d.shader,  error)) return false;
             if (!d.texture.empty() && !IsSafeRelativePath(d.texture)) { error = "texture path must be relative and stay inside the project"; return false; }
             if (d.shader.rfind("builtin:", 0) != 0 && !IsSafeRelativePath(d.shader)) { error = "shader must be 'builtin:<name>' or a safe relative path"; return false; }
+            if (m.contains("graph") && !m["graph"].is_null()) {
+                ShaderGraph g;
+                if (!ParseGraph(m["graph"], g, error)) { error = "material.graph: " + error; return false; }
+                d.graph = std::move(g);
+            }
 
             local.hasMaterial = true;
             local.mat = d;

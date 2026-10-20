@@ -116,14 +116,19 @@ add_library(engine STATIC
         include/component/textureRef.hpp
         include/shaderGraph/templates.hpp
         src/shaderGraph/templates.cpp
-        src/editor/ui/shaderEditorPanel.cpp
-        include/editor/ui/shaderEditorPanel.hpp
+        src/editor/ui/shaderEditor.cpp
+        include/editor/ui/shaderEditor.hpp
         include/editor/dialog/textureImport.hpp
         src/editor/dialog/textureImport.cpp
+        include/render/framebuffer/frameBuffer.hpp
+        src/render/framebuffer/framebuffer.cpp
+        include/editor/ui/viewportInfo.hpp
+        include/editor/ui/areaPanel.hpp
+        src/editor/ui/areaPanel.cpp
 
 
 )
 
-target_link_libraries(engine PUBLIC glad glfw mathpp imgui stb_image magic_enum::magic_enum cgltf nfd nlohmann_json::nlohmann_json)
+target_link_libraries(engine PUBLIC glad glfw mathpp imgui imnodes stb_image magic_enum::magic_enum cgltf nfd nlohmann_json::nlohmann_json)
 target_include_directories(engine PUBLIC include)
 target_compile_definitions(engine PUBLIC GLFW_INCLUDE_NONE)

@@ -2,7 +2,7 @@
 #include <algorithm>
 #include "core/project/projectPath.hpp"
 #include "shaderGraph/nodeRegistry.hpp"
-
+#include "shaderGraph/templates.hpp"
 const Material *MaterialSystem::GetMaterial(AssetHandle handle) const {
     if (m_materialManager.Has(handle)) {
         return m_materialManager.Get(handle);

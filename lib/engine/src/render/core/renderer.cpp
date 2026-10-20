@@ -101,9 +101,6 @@ void Renderer::DrawEntity(const Scene* scene, Entity entity,
     else {
         Shader* shader = m_shaderCache.Get("asset/shader/textureShader/textureVert.glsl", "asset/shader/textureShader/textureFrag.glsl", features);
         shader->Use();
-        if (mat->graph)
-            for (const auto& n : mat->graph->nodes)
-                if (const Texture* tex = p_materialSystem->GetTexture(n.image.handle)) return tex;
         const Texture* tex = mat ? FindMaterialTexture(*mat) : nullptr;
         if (!tex) tex = fallBackTexture.get();
         tex->Bind(0);
@@ -163,6 +160,9 @@ void Renderer::UploadMaterial(const Material& m, const Shader& s) const {
 }
 
 const Texture* Renderer::FindMaterialTexture(const Material& m) const {
+    if (m.graph)
+        for (const auto& n : m.graph->nodes)
+            if (const Texture* tex = p_materialSystem->GetTexture(n.image.handle)) return tex;
     for (const auto& p : m.props)
         if (const auto* t = std::get_if<TextureRef>(&p.value))
             if (const Texture* tex = p_materialSystem->GetTexture(t->handle)) return tex;

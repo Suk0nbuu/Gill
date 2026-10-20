@@ -71,8 +71,10 @@ void OrbitCamera::Update(Input* input, float /*deltaTime*/, const mathpp::vec3f&
 
     mathpp::vec2f scroll;
     input->GetScroll(scroll);
-    m_distance -= scroll.y * m_zoomSens;
-    m_distance = mathpp::clamp(m_distance, m_minDistance, m_maxDistance);
+    if (!suppressLook) {
+        m_distance -= scroll.y * m_zoomSens;
+        m_distance = mathpp::clamp(m_distance, m_minDistance, m_maxDistance);
+    }
 
     float yawRad = mathpp::to_radians(m_yaw);
     float pitchRad = mathpp::to_radians(m_pitch);

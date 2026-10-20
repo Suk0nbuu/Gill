@@ -3,13 +3,13 @@
 
 struct ImNodesContext;
 
-class ShaderEditorPanel : public EditorPanel {
+class ShaderEditor  {
 public:
-    explicit ShaderEditorPanel(EditorContext ctx);
-    ~ShaderEditorPanel() override;
-    ShaderEditorPanel(const ShaderEditorPanel&) = delete;
-    ShaderEditorPanel& operator=(const ShaderEditorPanel&) = delete;
-    void Draw() override;
+    explicit ShaderEditor(EditorContext ctx);
+    ~ShaderEditor();
+    ShaderEditor(const ShaderEditor&) = delete;
+    ShaderEditor& operator=(const ShaderEditor&) = delete;
+    void DrawContents();
 
 private:
     Material* SelectedMaterial(AssetHandle& handle);

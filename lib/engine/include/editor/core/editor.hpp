@@ -39,6 +39,8 @@ public:
     Editor();
     void Init(float width, float height,Window* window,Scene* scene,Input* input,const mathpp::mat4f& projection,Camera* camera,TransformSystem* transformSystem,Hierarchy* hierarchy,MeshSystem* meshSystem, MaterialSystem* materialSystem,Renderer* renderer,ArmatureSystem* armatureSystem,ProjectPaths* projectPaths);
     void Run(float deltaT);
+    GetViewportInfo();
+    GetViewportFramebuffer();
     void ShutDown();
     ~Editor();
 

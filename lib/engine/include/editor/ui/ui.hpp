@@ -12,6 +12,8 @@
 #include <vector>
 #include "scene/scene.hpp"
 #include "core/component/event/event.hpp"
+#include "render/framebuffer/framebuffer.hpp"
+#include "editor/ui/viewportInfo.hpp"
 
 namespace {
     void RegisterBuiltinComponents(ComponentRegistry& r) {
@@ -98,6 +100,8 @@ public:
     bool WantCaptureMouse();
     void Shutdown();
     void SetFileEvents(EventDelegate<>* save, EventDelegate<>* close);
+    Framebuffer& GetViewportFramebuffer() { return m_viewportFb; }
+    const ViewportInfo& GetViewportInfo() const { return m_viewportInfo; }
 
 private:
     void DrawDockspace(Scene* scene);
@@ -106,7 +110,8 @@ private:
     PrimitiveData m_primitiveData;
     EventDelegate<>* p_saveRequested = nullptr;
     EventDelegate<>* p_closeRequested = nullptr;
-
+    Framebuffer m_viewportFb;
+    ViewportInfo m_viewportInfo;
     std::vector<std::unique_ptr<EditorPanel>> v_panels;
     ComponentRegistry m_registry;
     ImGuiIO* p_io_ptr;

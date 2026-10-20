@@ -17,7 +17,8 @@
 #include "core/project/projectPath.hpp"
 #include "core/ops/primitiveOps.hpp"
 #include "core/ops/modelOps.hpp"
-#include "editor/ui/shaderEditorPanel.hpp"
+#include "editor/ui/shaderEditor.hpp"
+#include "editor/ui/areaPanel.hpp"
 
 void UIManager::Init(Window* window,Scene* scene,TransformSystem* transformSystem, Hierarchy* hierarchy,TransformData* gizmoData,Renderer* renderer,MeshSystem* meshSystem,MaterialSystem* materialSystem,EditorInputMap* editorInputMap,SelectionManager* selectionManager,Input* input,ProjectPaths* projectPaths) {
     ImGui::CreateContext();
@@ -45,7 +46,8 @@ void UIManager::Init(Window* window,Scene* scene,TransformSystem* transformSyste
     v_panels.emplace_back(std::make_unique<PropertiesPanel>(m_ctx));
     v_panels.emplace_back(std::make_unique<HierarchyPanel>(m_ctx));
     v_panels.emplace_back(std::make_unique<GizmoPanel>(m_ctx));
-    v_panels.emplace_back(std::make_unique<ShaderEditorPanel>(m_ctx));
+    v_panels.emplace_back(std::make_unique<AreaPanel>(m_ctx, 1, EditorType::Viewport3D,   &m_viewportFb, &m_viewportInfo));
+    v_panels.emplace_back(std::make_unique<AreaPanel>(m_ctx, 2, EditorType::ShaderEditor, &m_viewportFb, &m_viewportInfo));
 }
 
 void UIManager::BeginFrame() {
@@ -348,6 +350,8 @@ void UIManager::DrawDockspace(Scene *scene) {
 
 void UIManager::RenderPanels() {
     ImGui::DockSpaceOverViewport(0,ImGui::GetMainViewport(),ImGuiDockNodeFlags_PassthruCentralNode);
+    m_viewportInfo.visible = false;
+    m_viewportInfo.hovered = false;
     for (auto& panel : v_panels) {
         panel->Draw();
     }

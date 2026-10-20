@@ -41,6 +41,8 @@ add_subdirectory(lib/engine)
 add_subdirectory(extern/cgltf)
 add_subdirectory(lib/launcher)
 add_subdirectory(extern/nfd)
+add_subdirectory(extern/imnodes)
+
 
 
 
@@ -65,5 +67,5 @@ add_dependencies(gill copy_assets)
 
 
 
-target_link_libraries(gill PRIVATE glad engine magic_enum::magic_enum nfd nlohmann_json::nlohmann_json launcher)
+target_link_libraries(gill PRIVATE glad engine magic_enum::magic_enum nfd nlohmann_json::nlohmann_json launcher imnodes)
 

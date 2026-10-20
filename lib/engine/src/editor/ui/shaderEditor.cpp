@@ -1,4 +1,4 @@
-#include "editor/ui/shaderEditorPanel.hpp"
+#include "editor/ui/shaderEditor.hpp"
 #include "imgui.h"
 #include "imnodes.h"
 #include "shadergraph/nodeRegistry.hpp"
@@ -70,16 +70,16 @@ namespace {
     }
 }
 
-ShaderEditorPanel::ShaderEditorPanel(EditorContext ctx) : m_ctx(ctx) {
+ShaderEditor::ShaderEditor(EditorContext ctx) : m_ctx(ctx) {
     p_nodesContext = ImNodes::CreateContext();
     ImNodes::StyleColorsDark();
 }
 
-ShaderEditorPanel::~ShaderEditorPanel() {
+ShaderEditor::~ShaderEditor() {
     ImNodes::DestroyContext(p_nodesContext);
 }
 
-Material* ShaderEditorPanel::SelectedMaterial(AssetHandle& handle) {
+Material* ShaderEditor::SelectedMaterial(AssetHandle& handle) {
     auto sel = m_ctx.p_selectionManager->GetActiveSelected();
     if (!sel) return nullptr;
     const auto* c = m_ctx.p_scene->TryGetComponent<comp::MaterialComponent>(*sel);
@@ -88,15 +88,13 @@ Material* ShaderEditorPanel::SelectedMaterial(AssetHandle& handle) {
     return m_ctx.p_materialSystem->GetMaterial(c->materialID);
 }
 
-void ShaderEditorPanel::Draw() {
-    ImGui::Begin("Shader Editor");
-
+void ShaderEditor::DrawContents() {
+    ImNodes::SetCurrentContext(p_nodesContext);
     AssetHandle handle{};
     Material* mat = SelectedMaterial(handle);
     if (!mat) {
         m_lastMaterial = {};
         ImGui::TextDisabled("Select an entity that has a material.");
-        ImGui::End();
         return;
     }
     if (!mat->graph) {
@@ -106,7 +104,6 @@ void ShaderEditorPanel::Draw() {
             std::string err;
             m_error = m_ctx.p_materialSystem->CreateDefaultGraph(*mat, err) ? "" : err;
         }
-        ImGui::End();
         return;
     }
 
@@ -301,5 +298,4 @@ void ShaderEditorPanel::Draw() {
         std::string err;
         m_error = m_ctx.p_materialSystem->CompileGraph(*mat, err) ? "" : err;
     }
-    ImGui::End();
 }
