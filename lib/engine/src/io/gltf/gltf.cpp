@@ -1,6 +1,10 @@
 #include "io/gltf/gltf.hpp"
 #include "cgltf.h"
 #include "render/data/vertex.hpp"
+#include <fstream>
+#include <cstring>
+#include <iostream>
+#include <cstdlib>
 namespace {
     void DecomposeNodeMatrix(const float m[16], GLTFNode& out) {       // column-major, as in glTF
         out.pos = {m[12], m[13], m[14]};
@@ -31,6 +35,50 @@ namespace {
         else                                 { float q = 2.0f * std::sqrt(1.0f + m22 - m00 - m11); w = (m10-m01)/q; x = (m02+m20)/q; y = (m12+m21)/q; z = 0.25f*q; }
         out.rot.w = w; out.rot.x = x; out.rot.y = y; out.rot.z = z;
     }
+
+    bool ExtractImageBytes(const cgltf_image* img, const std::string& gltfPath,
+                       std::vector<unsigned char>& out)
+{
+    if (img->buffer_view) {                                   // .glb: bytes live in the BIN chunk
+        const cgltf_buffer_view* bv = img->buffer_view;
+        const unsigned char* p = (const unsigned char*)bv->buffer->data + bv->offset;
+        out.assign(p, p + bv->size);
+        return true;
+    }
+    if (!img->uri) return false;
+
+    if (std::strncmp(img->uri, "data:", 5) == 0) {            // base64 data URI
+        const char* comma = std::strchr(img->uri, ',');
+        if (!comma) return false;
+        const char* b64 = comma + 1;
+        size_t len = std::strlen(b64);
+        size_t pad = (len >= 1 && b64[len-1] == '=') + (len >= 2 && b64[len-2] == '=');
+        size_t size = len / 4 * 3 - pad;
+        void* decoded = nullptr;
+        cgltf_options opt = {};
+        if (cgltf_load_buffer_base64(&opt, size, b64, &decoded) != cgltf_result_success) return false;
+        out.assign((unsigned char*)decoded, (unsigned char*)decoded + size);
+        std::free(decoded);
+        return true;
+    }
+
+    std::string uri = img->uri;                               // external file next to the .gltf
+    cgltf_decode_uri(uri.data());
+    uri.resize(std::strlen(uri.c_str()));
+    size_t slash = gltfPath.find_last_of("/\\");
+    std::string dir = (slash == std::string::npos) ? "" : gltfPath.substr(0, slash + 1);
+    std::ifstream f(dir + uri, std::ios::binary);
+    if (!f) return false;
+    out.assign(std::istreambuf_iterator<char>(f), std::istreambuf_iterator<char>());
+    return true;
+}
+
+// Identify the format from the bytes themselves; don't trust the file name or mime type.
+const char* SniffExtension(const std::vector<unsigned char>& b) {
+    if (b.size() >= 8 && b[0] == 0x89 && b[1] == 'P' && b[2] == 'N' && b[3] == 'G') return ".png";
+    if (b.size() >= 3 && b[0] == 0xFF && b[1] == 0xD8 && b[2] == 0xFF)              return ".jpg";
+    return nullptr;                                           // webp, ktx2, etc.: unsupported by stb
+}
 }
 
 GLTFModel LoadGLTF(const std::string& path) {
@@ -46,6 +94,52 @@ GLTFModel LoadGLTF(const std::string& path) {
     if (data->skins_count > 1) model.warning = "model has several skins, only the first is used";
     if (data->skins_count > 0) model.armature = BuildArmatureFromSkin(&data->skins[0]);
     std::vector<std::vector<int>> meshPrims(data->meshes_count);
+    std::cout << "[gltf] file has " << data->materials_count << " materials, "
+          << data->textures_count << " textures, "
+          << data->images_count << " images\n";
+
+    std::vector<int> imageRemap(data->images_count, -1);          // -1 = not tried, -2 = failed
+    model.materials.resize(data->materials_count);
+
+    auto resolveImage = [&](const cgltf_texture* tex) -> int {
+        if (!tex) return -1;
+        if (!tex->image) { model.warning += "a texture uses an unsupported image type; "; return -1; }
+        size_t idx = tex->image - data->images;
+        if (imageRemap[idx] == -1) {
+            GLTFImage img;
+            const char* ext = nullptr;
+            if (ExtractImageBytes(tex->image, path, img.bytes) && (ext = SniffExtension(img.bytes))) {
+                img.extension = ext;
+                model.images.push_back(std::move(img));
+                imageRemap[idx] = int(model.images.size()) - 1;
+            } else {
+                imageRemap[idx] = -2;
+                model.warning += "a texture couldn't be read or has an unsupported format; ";
+            }
+        }
+        return imageRemap[idx] >= 0 ? imageRemap[idx] : -1;
+    };
+
+    for (size_t i = 0; i < data->materials_count; ++i) {
+        const cgltf_material& cm = data->materials[i];
+        GLTFMaterial& gm = model.materials[i];
+
+        gm.hasPbr = cm.has_pbr_metallic_roughness;
+        if (cm.has_pbr_metallic_roughness) {
+            const auto& pbr = cm.pbr_metallic_roughness;
+            std::memcpy(gm.baseColorFactor, pbr.base_color_factor, sizeof(float) * 4);
+            gm.metallic  = pbr.metallic_factor;
+            gm.roughness = pbr.roughness_factor;
+            gm.baseColorImage = resolveImage(pbr.base_color_texture.texture);
+        }
+        std::memcpy(gm.emissiveFactor, cm.emissive_factor, sizeof(float) * 3);
+        gm.emissiveImage = resolveImage(cm.emissive_texture.texture);
+        gm.uvSet = (gm.baseColorImage >= 0) ? cm.pbr_metallic_roughness.base_color_texture.texcoord
+                                    : cm.emissive_texture.texcoord;
+    }
+
+    std::cout << "[gltf] extracted images=" << model.images.size()
+             << " warning='" << model.warning << "'\n";
 
     for (size_t m = 0; m < data->meshes_count; ++m) {
         for (size_t p = 0; p < data->meshes[m].primitives_count; ++p) {
@@ -58,6 +152,7 @@ GLTFModel LoadGLTF(const std::string& path) {
             cgltf_accessor* texcoordAccessor = nullptr;
             cgltf_accessor* jointsAccessor   = nullptr;
             cgltf_accessor* weightsAccessor  = nullptr;
+            const int wantedUV = prim.material ? model.materials[prim.material - data->materials].uvSet : 0;
 
 
 
@@ -74,7 +169,7 @@ GLTFModel LoadGLTF(const std::string& path) {
                         break;
 
                     case cgltf_attribute_type_texcoord:
-                        if (attr.index == 0)
+                        if (attr.index == wantedUV)
                             texcoordAccessor = attr.data;
                         break;
 
@@ -129,7 +224,7 @@ GLTFModel LoadGLTF(const std::string& path) {
                     if (texcoordAccessor) {
                         float t[2];
                         cgltf_accessor_read_float(texcoordAccessor,v,t,2);
-                        vertex.uv = {t[0],t[1]};
+                        vertex.uv = {t[0], 1.0f - t[1]};
                     }
                     if (jointsAccessor) {
                         cgltf_uint joints[4];
@@ -149,6 +244,7 @@ GLTFModel LoadGLTF(const std::string& path) {
                 }
                 model.meshes.emplace_back(skinnedVertices, indices);
                 meshPrims[m].push_back(static_cast<int>(model.meshes.size()) - 1);
+                model.meshMaterial.push_back(prim.material ? int(prim.material - data->materials) : -1);
             }
             else {
                 std::vector<Vertex> vertices;
@@ -168,11 +264,12 @@ GLTFModel LoadGLTF(const std::string& path) {
                     if (texcoordAccessor) {
                         float t[2];
                         cgltf_accessor_read_float(texcoordAccessor,v,t,2);
-                        vertex.uv = {t[0],t[1]};
+                        vertex.uv = {t[0], 1.0f - t[1]};
                     }
                 }
                 model.meshes.emplace_back(vertices, indices);
                 meshPrims[m].push_back(static_cast<int>(model.meshes.size()) - 1);
+                model.meshMaterial.push_back(prim.material ? int(prim.material - data->materials) : -1);
             }
         }
     }
@@ -197,6 +294,7 @@ GLTFModel LoadGLTF(const std::string& path) {
         }
         if (cn.mesh) gn.meshes = meshPrims[cn.mesh - data->meshes];
         model.nodes.push_back(std::move(gn));
+
     }
     for (size_t s = 0; s < data->skins_count; ++s)
         for (size_t j = 0; j < data->skins[s].joints_count; ++j)

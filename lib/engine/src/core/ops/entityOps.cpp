@@ -1,5 +1,6 @@
-#include "../../../include/core/ops/entityOps.hpp"
+#include "core/ops/entityOps.hpp"
 #include <vector>
+#include <iostream>
 #include <functional>
 #include "scene/scene.hpp"
 #include "core/system/hierarchy/hierarchy.hpp"
@@ -8,7 +9,8 @@
 #include "core/system/material/material.hpp"
 #include "io/gltf/gltf.hpp"
 #include "core/project/projectPath.hpp"
-
+#include <fstream>
+#include <algorithm>
 namespace {
     void DestroyOne(const EngineContext& ctx, Entity e) {
         Scene* s = ctx.p_scene;
@@ -29,6 +31,47 @@ namespace {
         ctx.p_hierarchy->Unparent(e);
         ctx.p_transformSystem->RemoveTransform(e);
         s->DestroyEntity(e);          // last, so a recycled id never inherits stale components
+    }
+
+    std::vector<Material> BuildGLTFMaterials(const GLTFModel& model, const std::string& stem,
+                                         MaterialSystem& materials, ProjectPaths& paths)
+    {
+        std::vector<std::string> imageRel(model.images.size());      // empty = write failed
+        for (size_t i = 0; i < model.images.size(); ++i) {
+            const GLTFImage& img = model.images[i];
+            std::string rel = "textures/" + stem + "_" + std::to_string(i) + img.extension;
+            std::filesystem::path full = paths.Resolve(rel);
+            std::filesystem::create_directories(full.parent_path());
+            std::ofstream out(full, std::ios::binary);
+            if (!out) continue;
+            out.write(reinterpret_cast<const char*>(img.bytes.data()), img.bytes.size());
+            imageRel[i] = rel;
+        }
+
+        std::vector<Material> result;
+        result.reserve(model.materials.size());
+        for (const GLTFMaterial& gm : model.materials) {
+            Material m = materials.MakeMaterial("builtin:brdf");
+
+            // STOPGAP: this model has no base color texture, only an emissive one,
+            // so use whichever image exists as the albedo texture
+            const int texImage = gm.baseColorImage >= 0 ? gm.baseColorImage : gm.emissiveImage;
+
+            for (auto& p : m.props) {
+                if (p.name == "albedo")
+                    p.value = mathpp::vec3f{gm.baseColorFactor[0], gm.baseColorFactor[1], gm.baseColorFactor[2]};
+                else if (p.name == "metallic")
+                    p.value = std::clamp(gm.metallic, 0.0f, 1.0f);
+                else if (p.name == "roughness")
+                    p.value = std::clamp(gm.roughness, 0.05f, 1.0f);
+                else if (p.name == "albedoTex" && texImage >= 0 && !imageRel[texImage].empty()) {
+                    const std::string& rel = imageRel[texImage];
+                    p.value = TextureRef{rel, materials.GetOrLoadTexture(rel)};
+                }
+            }
+            result.push_back(std::move(m));
+        }
+        return result;
     }
 }
 
@@ -105,7 +148,12 @@ std::optional<Entity> InstantiateModel(EngineContext& ctx, const std::filesystem
     if (!ctx.p_projectPaths->HasRoot()) { err = "no project open"; return std::nullopt; }
     const std::string rel = ctx.p_projectPaths->ImportFile(src, "models", err);
     if (rel.empty()) return std::nullopt;
-
+    const std::vector<Material> gltfMaterials = BuildGLTFMaterials(model, std::filesystem::path(rel).stem().string(), *ctx.p_materialSystem, *ctx.p_projectPaths);
+    for (size_t i = 0; i < gltfMaterials.size(); ++i)
+        for (const auto& p : gltfMaterials[i].props)
+            if (const auto* t = std::get_if<TextureRef>(&p.value))
+                std::cout << "  template " << i << " " << p.name << " path='" << t->path
+                          << "' handleValid=" << (t->handle != AssetHandle{}) << "\n";
     const auto& nodes = model.nodes;
     const int count = static_cast<int>(nodes.size());
     const Entity root = SpawnEmpty(ctx, src.stem().string());
@@ -162,13 +210,22 @@ std::optional<Entity> InstantiateModel(EngineContext& ctx, const std::filesystem
         GLTFModel again = LoadGLTF(src.string());
         return std::move(again.meshes[idx]);
     };
+    auto addMaterial = [&](Entity e, int meshIdx) {
+        const int mi = model.meshMaterial[meshIdx];
+        comp::MaterialComponent mc;
+        mc.materialID = ctx.p_materialSystem->RegisterMaterial(
+            mi >= 0 ? Material(gltfMaterials[mi])
+                    : ctx.p_materialSystem->MakeMaterial("builtin:brdf"));
+        ctx.p_scene->InsertComponent(e, mc);
+    };
     auto addMesh = [&](Entity e, int idx) {
         comp::MeshComponent mc;
         mc.meshID = ctx.p_meshSystem->RegisterMesh(takeMesh(idx));
         ctx.p_scene->InsertComponent(e, mc);
         ctx.p_scene->InsertComponent(e, comp::MeshRefComponent{rel, idx});
-        AddDefaultMaterial(ctx, e);
+        addMaterial(e, idx);
     };
+
     for (int i = 0; i < count; ++i) {
         if (!ent[i] || nodes[i].meshes.empty()) continue;
         if (nodes[i].meshes.size() == 1) { addMesh(*ent[i], nodes[i].meshes[0]); continue; }

@@ -92,7 +92,7 @@ void main() {
     vec3 color = vec3(0.03) * baseColor;
     for (int i = 0; i < lightCount; ++i) {
         LightSample s = SampleLight(i, fragPos);
-        color += BRDFShader(albedo, N, V, s.L, roughness, metallic) * s.radiance;
+        color += BRDFShader(baseColor, N, V, s.L, roughness, metallic) * s.radiance;
     }
     color = color / (color + vec3(1.0));              // existing tone map + gamma, unchanged
     color = pow(color, vec3(1.0 / 2.2));

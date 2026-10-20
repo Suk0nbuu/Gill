@@ -107,6 +107,11 @@ add_library(engine STATIC
         src/core/ops/lightOps.cpp
         src/core/project/projectPath.cpp
         src/core/ops/modelOps.cpp
+        include/shaderGraph/graph.hpp
+        include/shaderGraph/nodeRegistry.hpp
+        src/shaderGraph/nodeRegistry.cpp
+        include/shaderGraph/codeGen.hpp
+        src/shaderGraph/codeGen.cpp
 
 
 )

@@ -99,6 +99,13 @@ MaterialSystem::MaterialSystem(ProjectPaths* projectPaths) {
         {"strength",PropType::Float,1.0f,0.0f,20.0f},
 
     }};
+    m_defs["builtin:toon"] = { "asset/shader/core/surfaceVert.glsl", "asset/shader/npr/toon/toonFrag.glsl", {
+        {"albedo",          PropType::Color3,  mathpp::vec3f{1.0f, 1.0f, 1.0f}},
+        {"albedoTex",       PropType::Texture, TextureRef{}},
+        {"shadowColor",     PropType::Color3,  mathpp::vec3f{0.55f, 0.55f, 0.7f}},
+        {"shadowThreshold", PropType::Float,   0.5f,  0.0f, 1.0f},
+        {"shadowSoftness",  PropType::Float,   0.02f, 0.0f, 0.5f},
+    }};
 }
 
 const ShaderDef *MaterialSystem::GetShaderDef(const std::string &key) const {

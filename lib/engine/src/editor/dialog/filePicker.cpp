@@ -12,7 +12,7 @@ namespace  FilePicker {
     }
     std::optional<std::filesystem::path> PickModelFile() {
         nfdu8char_t* out = nullptr;
-        nfdu8filteritem_t filters[1] = {{"Models","glb,fbx,obj"}};
+        nfdu8filteritem_t filters[1] = {{"Models", "glb,gltf,fbx,obj"}};
         if (NFD_OpenDialogU8(&out, filters, 1, nullptr) != NFD_OKAY) return std::nullopt;
         std::filesystem::path p = std::filesystem::u8path(reinterpret_cast<const char*>(out));
         NFD_FreePathU8(out);
