@@ -37,6 +37,8 @@ public:
     [[nodiscard]]bool HasTexture(AssetHandle handle) const;
     AssetHandle LoadTextureFile(const std::string& path);
     void RemoveTexture(AssetHandle handle);
+    void ClearGraph(Material& m);
+    bool CreateDefaultGraph(Material& m, std::string& err);
 
 
     AssetHandle GetOrLoadTexture(const std::string& relPath);

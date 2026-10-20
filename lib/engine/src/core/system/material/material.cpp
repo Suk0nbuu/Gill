@@ -152,3 +152,18 @@ bool MaterialSystem::CompileGraph(Material& m, std::string& err) {
     m.graphShaderId = m_generatedShaders.Register(r);
     return true;
 }
+
+void MaterialSystem::ClearGraph(Material& m) {
+    m.graph.reset();
+    m.graphShaderId = -1;
+}
+
+bool MaterialSystem::CreateDefaultGraph(Material& m, std::string& err) {
+    ShaderGraph g = MakeToonGraph();
+    for (const auto& p : m.props)                         // keep a texture the material already had
+        if (p.name == "albedoTex")
+            if (const auto* t = std::get_if<TextureRef>(&p.value))
+                for (auto& n : g.nodes) if (n.type == "texture.image") n.image = *t;
+    m.graph = std::move(g);
+    return CompileGraph(m, err);
+}

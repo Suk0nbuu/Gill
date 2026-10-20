@@ -114,6 +114,12 @@ add_library(engine STATIC
         src/shaderGraph/codeGen.cpp
         include/render/shader/genShaderCache.hpp
         include/component/textureRef.hpp
+        include/shaderGraph/templates.hpp
+        src/shaderGraph/templates.cpp
+        src/editor/ui/shaderEditorPanel.cpp
+        include/editor/ui/shaderEditorPanel.hpp
+        include/editor/dialog/textureImport.hpp
+        src/editor/dialog/textureImport.cpp
 
 
 )

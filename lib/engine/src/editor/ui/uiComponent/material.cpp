@@ -7,24 +7,8 @@
 #include <optional>
 #include "stb_image.h"
 #include "core/project/projectPath.hpp"
+#include "editor/dialog/textureImport.hpp"
 
-namespace {
-    std::string ImportTexture(const std::filesystem::path& src, const std::filesystem::path& root, std::string& err) {
-        int w, h, c;
-        if (!stbi_info(src.string().c_str(), &w, &h, &c)) { err = "not a readable image"; return {}; }  // checks content, not extension
-        std::error_code ec;
-        const auto dir = root / "assets" / "textures";
-        std::filesystem::create_directories(dir, ec);
-        auto dst = dir / src.filename();
-        for (int i = 1; std::filesystem::exists(dst, ec) && std::filesystem::file_size(dst, ec) != std::filesystem::file_size(src, ec); ++i)
-            dst = dir / (src.stem().string() + "_" + std::to_string(i) + src.extension().string());
-        if (!std::filesystem::exists(dst, ec)) {
-            std::filesystem::copy_file(src, dst, ec);
-            if (ec) { err = "copy failed: " + ec.message(); return {}; }
-        }
-        return std::filesystem::relative(dst, root, ec).generic_string();
-    }
-}
 bool HasMaterial(const EngineContext& ctx, Entity e) {
     return ctx.p_scene->TryGetComponent<comp::MaterialComponent>(e) != nullptr;
 }
@@ -53,6 +37,11 @@ bool DrawMaterialInspector(EditorContext& ctx, Entity e) {
     if (!mat) { ImGui::TextDisabled("Material missing"); return false; }
 
     bool changed = false;
+    if (mat->graph) {
+        ImGui::TextDisabled("Shader: node graph (edit in Shader Editor)");
+        if (ImGui::Button("Remove node graph")) { ctx.p_materialSystem->ClearGraph(*mat); changed = true; }
+        return changed;
+    }
     const ShaderDef* def = ctx.p_materialSystem->GetShaderDef(mat->shaderKey);
     if (ImGui::BeginCombo("Shader", mat->shaderKey.c_str())) {
         for (const auto& k : ctx.p_materialSystem->ShaderKeys())
@@ -85,6 +74,11 @@ bool DrawMaterialInspector(EditorContext& ctx, Entity e) {
             if (!t->path.empty()) { ImGui::SameLine(); if (ImGui::SmallButton("x")) { *t = {}; changed = true; } }
             ImGui::PopID();
         }
+    }
+    if (ImGui::Button("Create node graph")) {
+        std::string err;
+        if (!ctx.p_materialSystem->CreateDefaultGraph(*mat, err)) std::fprintf(stderr, "Graph error: %s\n", err.c_str());
+        changed = true;
     }
     return changed;
 }

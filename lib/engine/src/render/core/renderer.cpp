@@ -15,7 +15,10 @@
 #include "render/data/lightBlock.hpp"
 #include "render/data/uniform.hpp"
 #include "core/system/hierarchy/hierarchy.hpp"
+#include "shaderGraph/nodeRegistry.hpp"
 #include <type_traits>
+
+namespace { constexpr const char* kSurfaceVert = "asset/shader/core/surfaceVert.glsl"; }
 
 
 void Renderer::Init(Scene* scene,TransformSystem* transformSystem,MeshSystem* meshSystem,MaterialSystem* materialSystem,ArmatureSystem* armatureSystem,Hierarchy* hierarchy) {
@@ -98,6 +101,9 @@ void Renderer::DrawEntity(const Scene* scene, Entity entity,
     else {
         Shader* shader = m_shaderCache.Get("asset/shader/textureShader/textureVert.glsl", "asset/shader/textureShader/textureFrag.glsl", features);
         shader->Use();
+        if (mat->graph)
+            for (const auto& n : mat->graph->nodes)
+                if (const Texture* tex = p_materialSystem->GetTexture(n.image.handle)) return tex;
         const Texture* tex = mat ? FindMaterialTexture(*mat) : nullptr;
         if (!tex) tex = fallBackTexture.get();
         tex->Bind(0);
