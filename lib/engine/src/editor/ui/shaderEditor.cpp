@@ -122,12 +122,24 @@ void ShaderEditor::DrawContents() {
 
     bool structureChanged = false;
 
-    const bool openPopup = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) && ImNodes::IsEditorHovered() &&
-                           (ImGui::IsMouseReleased(ImGuiMouseButton_Right) ||
-                            (ImGui::GetIO().KeyShift && ImGui::IsKeyPressed(ImGuiKey_A)));       // Shift+A, like Blender
+    const bool focused =
+    ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
+
+
+
+    const bool rightReleased =
+        ImGui::IsMouseReleased(ImGuiMouseButton_Right);
+
+    const bool shiftA =
+        ImGui::GetIO().KeyShift &&
+        ImGui::IsKeyPressed(ImGuiKey_A);
+
+        // Shift+A, like Blender
 
     ImNodes::BeginNodeEditor();
     ImNodes::PushAttributeFlag(ImNodesAttributeFlags_EnableLinkDetachWithDragClick);
+    const bool hovered = ImNodes::IsEditorHovered();
+    const bool openPopup = focused && hovered && (rightReleased || shiftA);
 
     for (GraphNode& n : g.nodes) {
         const NodeDef* def = reg.Find(n.type);
