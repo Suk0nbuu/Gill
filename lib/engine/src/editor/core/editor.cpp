@@ -165,3 +165,16 @@ void Editor::UpdateCursorForModalDrag() {
         p_input->SetCursorMode(0);
     }
 }
+
+const ViewportInfo& Editor::GetViewportInfo() {
+    return up_ui->GetViewportInfo();
+}
+
+Framebuffer &Editor::GetViewportFramebuffer() {
+    return up_ui->GetViewportFramebuffer();
+}
+
+
+void Editor::SetProjection(const mathpp::mat4f& proj) {
+    m_proj = proj;
+}

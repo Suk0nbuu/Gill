@@ -34,6 +34,7 @@ public:
     Renderer* GetRenderer();
     ArmatureSystem* GetArmatureSystem();
     ProjectPaths* GetProjectPath();
+    void SetProjection(const mathpp::mat4f& proj);
 
 private:
     unsigned int m_width,m_height;

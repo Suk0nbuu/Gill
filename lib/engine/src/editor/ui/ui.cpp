@@ -26,6 +26,7 @@ void UIManager::Init(Window* window,Scene* scene,TransformSystem* transformSyste
     p_io_ptr->ConfigFlags |= ImGuiConfigFlags_DockingEnable; //Enable Docking
     p_io_ptr->ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
     p_io_ptr->ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
+    p_io_ptr->ConfigWindowsMoveFromTitleBarOnly = true;   // otherwise dragging inside the viewport moves a floating window
     ApplyEditorTheme();
     m_ctx.p_input = input;
     m_ctx.p_hierarchy = hierarchy;
@@ -112,7 +113,7 @@ void UIManager::Shutdown() {
 
 
 bool UIManager::WantCaptureMouse() {
-    return p_io_ptr->WantCaptureMouse==true;
+    return p_io_ptr->WantCaptureMouse && !m_viewportInfo.hovered;
 }
 
 

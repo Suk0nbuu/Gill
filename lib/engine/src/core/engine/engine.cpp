@@ -83,3 +83,7 @@ ProjectPaths *Engine::GetProjectPath() {
 EngineContext& Engine::Context() {
     return m_engineContext;
 }
+
+void Engine::SetProjection(const mathpp::mat4f &proj) {
+    m_proj = proj;
+}

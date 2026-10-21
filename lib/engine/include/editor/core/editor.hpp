@@ -29,7 +29,8 @@ class SelectionManager;
 class ArmatureSystem;
 class GizmoAdapter;
 class ProjectPaths;
-
+class ViewportInfo;
+class Framebuffer;
 using MouseEvent = EventDelegate<int,int>;
 
 
@@ -39,8 +40,9 @@ public:
     Editor();
     void Init(float width, float height,Window* window,Scene* scene,Input* input,const mathpp::mat4f& projection,Camera* camera,TransformSystem* transformSystem,Hierarchy* hierarchy,MeshSystem* meshSystem, MaterialSystem* materialSystem,Renderer* renderer,ArmatureSystem* armatureSystem,ProjectPaths* projectPaths);
     void Run(float deltaT);
-    GetViewportInfo();
-    GetViewportFramebuffer();
+   const  ViewportInfo& GetViewportInfo();
+    Framebuffer& GetViewportFramebuffer();
+    void SetProjection(const mathpp::mat4f& proj);
     void ShutDown();
     ~Editor();
 

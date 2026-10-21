@@ -18,8 +18,9 @@ void AreaPanel::Draw() {
     const std::string title = std::string(TypeName(m_type)) + "###area" + std::to_string(m_id);
 
     const bool isViewport = (m_type == EditorType::Viewport3D);
-    if (isViewport) ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-    const bool open = ImGui::Begin(title.c_str(), nullptr, ImGuiWindowFlags_MenuBar);
+    ImGuiWindowFlags flags = ImGuiWindowFlags_MenuBar;
+    if (isViewport) flags |= ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse;
+    const bool open = ImGui::Begin(title.c_str(), nullptr, flags);
     if (isViewport) ImGui::PopStyleVar();
 
     if (open) {
