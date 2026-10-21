@@ -14,6 +14,7 @@ class Gizmo {
 public:
 
     void Init(unsigned int width,unsigned int height,TransformData* gizmoData,TransformSystem* transformSystem);
+    void Resize(unsigned int width, unsigned int height);   // pick buffer must match the viewport image size
     void Render(Scene* scene,const mathpp::vec3f& gizmoPosition, const mathpp::vec3f& cameraPos,Entity entity);
     void RenderIDs(const mathpp::vec3f& gizmoPosition, const mathpp::vec3f& cameraPos, Entity entity);
     void UpdateHighlight(int x, int y,TransformAxis dragAxis,bool isDragging = false);
@@ -32,9 +33,8 @@ private:
     std::unique_ptr<Shader> up_gizmoShader;
     std::unique_ptr<Shader> up_gizmoShaderID;
     unsigned int m_pickFBO, m_pickTexture, m_pickDepthRenderBuffer;
-    unsigned int m_pickWidth, m_pickHeight;
+    unsigned int m_pickWidth = 0, m_pickHeight = 0;
     unsigned int m_originVBO,m_originVAO;
-    float m_width,m_height;
     float m_AxisHeight = 1.0f;
     TransformData* p_gizmoData;
     TransformAxis em_highlightedAxis = TransformAxis::None;

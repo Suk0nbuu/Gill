@@ -20,6 +20,7 @@ void AreaPanel::Draw() {
     const bool isViewport = (m_type == EditorType::Viewport3D);
     ImGuiWindowFlags flags = ImGuiWindowFlags_MenuBar;
     if (isViewport) flags |= ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse;
+    if (isViewport) ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
     const bool open = ImGui::Begin(title.c_str(), nullptr, flags);
     if (isViewport) ImGui::PopStyleVar();
 

@@ -102,9 +102,13 @@ public:
     void SetFileEvents(EventDelegate<>* save, EventDelegate<>* close);
     Framebuffer& GetViewportFramebuffer() { return m_viewportFb; }
     const ViewportInfo& GetViewportInfo() const { return m_viewportInfo; }
+    void ResetLayout() { m_layoutRequested = true; }   // rebuilds the default dock layout next frame
 
 private:
     void DrawDockspace(Scene* scene);
+    void BuildDefaultLayout(ImGuiID dockspace);
+    bool m_layoutChecked = false;
+    bool m_layoutRequested = false;
     void ApplyEditorTheme();
     EditorContext m_ctx;
     PrimitiveData m_primitiveData;

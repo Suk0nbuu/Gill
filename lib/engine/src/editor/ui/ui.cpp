@@ -1,4 +1,5 @@
 #include "editor/ui/ui.hpp"
+#include "imgui_internal.h"
 #include "core/window/window.hpp"
 #include "scene/scene.hpp"
 #include "core/system/hierarchy/hierarchy.hpp"
@@ -71,6 +72,11 @@ void UIManager::RenderAddMenu() {
         if (ImGui::BeginMenu("File")) {
             if (ImGui::MenuItem("Save", "Ctrl+S")) p_saveRequested->Fire();
             if (ImGui::MenuItem("Close Project"))  p_closeRequested->Fire();
+            ImGui::EndMenu();
+        }
+
+        if (ImGui::BeginMenu("Window")) {
+            if (ImGui::MenuItem("Reset Layout")) ResetLayout();
             ImGui::EndMenu();
         }
 
@@ -349,8 +355,39 @@ void UIManager::DrawDockspace(Scene *scene) {
     return;
 }
 
+void UIManager::BuildDefaultLayout(ImGuiID dockspace) {
+    bool build = m_layoutRequested;
+    if (!m_layoutChecked) {
+        m_layoutChecked = true;
+        // First launch: imgui.ini has no entry for the area windows yet. A saved layout,
+        // even a deliberately floating one, is left alone.
+        if (!ImGui::FindWindowSettingsByID(ImHashStr("###area1"))) build = true;
+    }
+    if (!build) return;
+    m_layoutRequested = false;
+
+    const ImGuiViewport* vp = ImGui::GetMainViewport();
+    ImGui::DockBuilderRemoveNode(dockspace);               // also undocks every window
+    ImGui::DockBuilderAddNode(dockspace, ImGuiDockNodeFlags_DockSpace | ImGuiDockNodeFlags_PassthruCentralNode);
+    ImGui::DockBuilderSetNodeSize(dockspace, vp->WorkSize);
+
+    ImGuiID center = dockspace;
+    ImGuiID left        = ImGui::DockBuilderSplitNode(center, ImGuiDir_Left,  0.18f, nullptr, &center);
+    ImGuiID right       = ImGui::DockBuilderSplitNode(center, ImGuiDir_Right, 0.24f, nullptr, &center);
+    ImGuiID rightBottom = ImGui::DockBuilderSplitNode(right,  ImGuiDir_Down,  0.30f, nullptr, &right);
+    ImGuiID bottom      = ImGui::DockBuilderSplitNode(center, ImGuiDir_Down,  0.35f, nullptr, &center);
+
+    ImGui::DockBuilderDockWindow("Hierarchy",  left);
+    ImGui::DockBuilderDockWindow("Properties", right);
+    ImGui::DockBuilderDockWindow("Gizmo",      rightBottom);
+    ImGui::DockBuilderDockWindow("###area1",   center);    // 3D viewport
+    ImGui::DockBuilderDockWindow("###area2",   bottom);    // shader editor
+    ImGui::DockBuilderFinish(dockspace);
+}
+
 void UIManager::RenderPanels() {
-    ImGui::DockSpaceOverViewport(0,ImGui::GetMainViewport(),ImGuiDockNodeFlags_PassthruCentralNode);
+    const ImGuiID dockspace = ImGui::DockSpaceOverViewport(0,ImGui::GetMainViewport(),ImGuiDockNodeFlags_PassthruCentralNode);
+    BuildDefaultLayout(dockspace);
     m_viewportInfo.visible = false;
     m_viewportInfo.hovered = false;
     for (auto& panel : v_panels) {

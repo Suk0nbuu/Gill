@@ -59,18 +59,8 @@ void App::Run() {
 
         const ViewportInfo& vp = up_editor->GetViewportInfo();
 
-        // Who owns the mouse: the 3D view or the UI. While a button stays down, the answer
-        // from when the press began is kept, so a drag that leaves the image doesn't hand
-        // the mouse over to the UI halfway through.
-        const bool anyDown = up_input->IsMouseButtonDown(GLFW_MOUSE_BUTTON_LEFT) ||
-                             up_input->IsMouseButtonDown(GLFW_MOUSE_BUTTON_RIGHT) ||
-                             up_input->IsMouseButtonDown(GLFW_MOUSE_BUTTON_MIDDLE);
-        if (!(anyDown && m_mouseWasDown)) m_viewportActive = vp.hovered;
-        m_mouseWasDown = anyDown;
-        up_editor->SetViewportActive(m_viewportActive);            // picking/gizmo handlers read this
-
+        up_editor->BeginFrameInput();                              // decides who owns the mouse this frame; must run before Input::Update fires its events
         up_input->Update();
-        up_camera->Update(up_input.get(), m_deltaTime, {0.0f, 0.0f, 0.0f}, !m_viewportActive);
 
         Framebuffer& fb = up_editor->GetViewportFramebuffer();
         if (vp.visible) {
@@ -79,12 +69,15 @@ void App::Run() {
         } else {
             fb.Resize(1, 1);
         }
+        up_editor->Update(m_deltaTime);                            // camera, input and modal transforms
+
         fb.Bind();
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         up_engine->Run();
+        up_editor->RenderOverlays();                               // grid, gizmo, picking, outline: into the viewport image
         Framebuffer::Unbind(winW, winH);
 
-        up_editor->Run(m_deltaTime);
+        up_editor->RunUI();
         up_input->ClearFrameState();
         up_window->SwapBuffers();
     }

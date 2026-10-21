@@ -34,8 +34,6 @@ private:
     std::unique_ptr<Engine> up_engine;
     std::unique_ptr<Editor> up_editor;
     mathpp::mat4f m_projection;
-    bool m_viewportActive = false;
-    bool m_mouseWasDown = false;
     void UpdateProjection(float aspect);
     bool LoadScene(std::string& error);
     void SaveScene();

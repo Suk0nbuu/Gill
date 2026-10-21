@@ -29,7 +29,7 @@ class SelectionManager;
 class ArmatureSystem;
 class GizmoAdapter;
 class ProjectPaths;
-class ViewportInfo;
+struct ViewportInfo;
 class Framebuffer;
 using MouseEvent = EventDelegate<int,int>;
 
@@ -39,7 +39,11 @@ class Editor {
 public:
     Editor();
     void Init(float width, float height,Window* window,Scene* scene,Input* input,const mathpp::mat4f& projection,Camera* camera,TransformSystem* transformSystem,Hierarchy* hierarchy,MeshSystem* meshSystem, MaterialSystem* materialSystem,Renderer* renderer,ArmatureSystem* armatureSystem,ProjectPaths* projectPaths);
-    void Run(float deltaT);
+    void Update(float deltaT);       // input + modal transform logic; no GL drawing
+    void RenderOverlays();           // grid, gizmo, pick passes, outline; call with the viewport FBO bound
+    void RunUI();                    // ImGui frame; call with the window framebuffer bound
+    void BeginFrameInput();          // call once per frame, before Input::Update
+    bool IsViewportActive() const { return m_viewportActive; }
    const  ViewportInfo& GetViewportInfo();
     Framebuffer& GetViewportFramebuffer();
     void SetProjection(const mathpp::mat4f& proj);
@@ -54,6 +58,13 @@ private:
     void TrySelect(int mx, int my);
     mathpp::vec3f ComputeMedianPos();
     void UpdateCursorForModalDrag();
+    void SyncViewportSize(int w, int h);
+    mathpp::vec2f LocalCursor() const;   // cursor position relative to the viewport image's top-left
+
+    bool m_viewportActive = false;   // the 3D view owns the mouse (latched while a button is held)
+    bool m_mouseWasDown = false;
+    int m_vpWidth = 0, m_vpHeight = 0;
+    int m_cursorMode = -1;
 
     std::unique_ptr<Gizmo> up_gizmo;
     std::unique_ptr<GridRenderer> up_gridRenderer;

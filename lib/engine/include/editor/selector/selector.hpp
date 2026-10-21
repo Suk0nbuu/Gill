@@ -18,12 +18,13 @@ class Selector {
     public:
     Selector() = default;
     void Init(unsigned int width, unsigned int height);
+    void Resize(unsigned int width, unsigned int height);   // pick buffer must match the viewport image size
     void RenderScene(const Scene* scene,TransformSystem* transformSystem,MeshSystem* meshSystem);
     std::optional<Entity> ReadEntityAt(int x, int y) const;
 
 private:
     void RenderEntityID(const Scene* scene,Entity entity, const comp::MeshComponent& meshComp,TransformSystem* transformSystem,MeshSystem* meshSystem);
-    unsigned int m_width,m_height;
+    unsigned int m_width = 0, m_height = 0;
     unsigned int m_FBO;
     unsigned int m_Texture;
     unsigned int m_depthRenderBuffer;

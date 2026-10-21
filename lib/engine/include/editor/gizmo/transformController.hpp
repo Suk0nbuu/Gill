@@ -21,6 +21,7 @@ public:
     void Cancel();
     TransformAxis GetActiveAxis() const;
     bool IsDragging();
+    void SetViewportSize(float width, float height) { m_width = width; m_height = height; }   // mouse coords are viewport-local
     void End();
     TransformMode GetMode();
     void AddScreenCorrection(const mathpp::vec2f& delta);

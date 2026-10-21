@@ -19,6 +19,7 @@
 #include "editor/outline/outline.hpp"
 #include "editor/gizmo/gizmoAdapter.hpp"
 #include "core/debug/test.hpp"
+#include "editor/ui/viewportInfo.hpp"
 
 
 void Editor::Init(float Width, float Height,Window* window,Scene* scene,Input* input,const mathpp::mat4f& projection, Camera* camera,TransformSystem* transformSystem,Hierarchy* hierarchy,MeshSystem* meshSystem, MaterialSystem* materialSystem,Renderer* renderer, ArmatureSystem* armatureSystem,ProjectPaths* projectPath) {
@@ -27,7 +28,6 @@ void Editor::Init(float Width, float Height,Window* window,Scene* scene,Input* i
     m_width = Width;
     m_height = Height;
     m_proj = projection;
-    Shader shader("asset/shader/simpleShader/simpleVert.glsl", "asset/shader/simpleShader/simpleFrag.glsl");
     p_camera = camera;
     p_renderer = renderer;
     up_selector = std::make_unique<Selector>();
@@ -56,9 +56,13 @@ void Editor::Init(float Width, float Height,Window* window,Scene* scene,Input* i
     up_gizmoAdapter->Init(up_gizmo.get(), up_transformController.get(), &m_gizmoData, up_selectionManager.get());
 
     auto handle1 = p_input->mouseDown.Subscribe([this](int mx, int my) {
-        bool consumed = up_gizmoAdapter->OnMouseDown(mx, my, p_camera->GetViewMatrix(), m_proj);
-        if (!consumed && !up_ui->WantCaptureMouse()) {
-            TrySelect(mx, my);
+        if (!m_viewportActive) return;                      // the click belongs to another panel
+        const ViewportInfo& vp = up_ui->GetViewportInfo();
+        const int lx = mx - static_cast<int>(vp.x);         // viewport-local pixels
+        const int ly = my - static_cast<int>(vp.y);
+        bool consumed = up_gizmoAdapter->OnMouseDown(lx, ly, p_camera->GetViewMatrix(), m_proj);
+        if (!consumed) {
+            TrySelect(lx, ly);
         }
     });
     auto handle2 = p_input->mouseUp.Subscribe([this](int mx, int my) {
@@ -69,26 +73,32 @@ void Editor::Init(float Width, float Height,Window* window,Scene* scene,Input* i
     v_handles.push_back(std::make_pair(&p_input->mouseUp,handle2));
 }
 
-void Editor::Run(float deltaT) {
-    up_gridRenderer->Render(p_camera->GetPosition());
-    mathpp::vec2f pos;
-    p_input->GetCursorPos(pos);
+void Editor::BeginFrameInput() {
+    // Who owns the mouse: the 3D view or the UI. While a button stays down, the answer
+    // from when the press began is kept, so a drag that leaves the image doesn't hand
+    // the mouse over to the UI halfway through.
+    const bool anyDown = p_input->IsMouseButtonDown(GLFW_MOUSE_BUTTON_LEFT) ||
+                         p_input->IsMouseButtonDown(GLFW_MOUSE_BUTTON_RIGHT) ||
+                         p_input->IsMouseButtonDown(GLFW_MOUSE_BUTTON_MIDDLE);
+    if (!(anyDown && m_mouseWasDown)) m_viewportActive = up_ui->GetViewportInfo().hovered;
+    m_mouseWasDown = anyDown;
+}
+
+void Editor::Update(float deltaT) {
+    const ViewportInfo& vp = up_ui->GetViewportInfo();
+    p_camera->Update(p_input, deltaT, {0.0f, 0.0f, 0.0f}, !m_viewportActive);
+    if (vp.visible) SyncViewportSize(vp.width, vp.height);
+
+    const mathpp::vec2f pos = LocalCursor();
     UpdateCursorForModalDrag();
 
-
-
-    if (up_selectionManager->GetActiveSelected().has_value()) {
-        Entity active = up_selectionManager->GetActiveSelected().value();
-        mathpp::vec3f medianPos = ComputeMedianPos();
-        if (m_gizmoData.visible) {
-            up_gizmo->Render(p_scene,medianPos,p_camera->GetPosition(),active);
-            up_gizmo->RenderIDs(medianPos,p_camera->GetPosition(),active);
-            up_gizmo->DrawOriginMarker(medianPos);
-        }
-        up_gizmoAdapter->OnMouseMove(static_cast<int>(pos.x), static_cast<int>(pos.y));
-    }
+    // Starting a transform needs the 3D view under the mouse and no text field focused.
+    // Once a drag is running none of this is re-checked: the cursor is disabled during
+    // the drag, which makes ImGui report "not hovered".
+    const bool canStart = m_viewportActive && vp.visible && !ImGui::GetIO().WantTextInput;
 
     if (!up_transformController->IsDragging()) {
+        if (!canStart) return;
         if (up_editorInputMap->IsActionPressed(EditorAction::Translate)) up_transformController->EnterMode(TransformMode::Translate, p_camera->GetViewMatrix(), m_proj, pos.x, pos.y);
         else if (up_editorInputMap->IsActionPressed(EditorAction::Rotate)) up_transformController->EnterMode(TransformMode::Rotate, p_camera->GetViewMatrix(), m_proj, pos.x, pos.y);
         else if (up_editorInputMap->IsActionPressed(EditorAction::Scale)) up_transformController->EnterMode(TransformMode::Scale, p_camera->GetViewMatrix(), m_proj, pos.x, pos.y);
@@ -107,15 +117,56 @@ void Editor::Run(float deltaT) {
             }
         }
     }
+}
+
+void Editor::RenderOverlays() {
+    if (!up_ui->GetViewportInfo().visible) return;          // no 3D view on screen, skip every pass
+
+    up_gridRenderer->Render(p_camera->GetPosition());
+
+    if (up_selectionManager->GetActiveSelected().has_value()) {
+        Entity active = up_selectionManager->GetActiveSelected().value();
+        mathpp::vec3f medianPos = ComputeMedianPos();
+        if (m_gizmoData.visible) {
+            up_gizmo->Render(p_scene,medianPos,p_camera->GetPosition(),active);
+            up_gizmo->RenderIDs(medianPos,p_camera->GetPosition(),active);
+            up_gizmo->DrawOriginMarker(medianPos);
+        }
+        const mathpp::vec2f pos = LocalCursor();
+        up_gizmoAdapter->OnMouseMove(static_cast<int>(pos.x), static_cast<int>(pos.y));
+    }
 
     up_selector->RenderScene(p_scene,p_transformSystem,p_meshSystem);
     up_outline->Draw(p_scene);
+}
+
+void Editor::RunUI() {
     up_ui->BeginFrame();
     up_ui->RenderPanels();
     up_ui->RenderPrimitiveOp();
     up_ui->RenderViewportMode();
     up_ui->RenderAddMenu();
     up_ui->EndFrame();
+}
+
+void Editor::SyncViewportSize(int w, int h) {
+    if (w == m_vpWidth && h == m_vpHeight) return;
+    m_vpWidth = w;
+    m_vpHeight = h;
+    m_width = static_cast<float>(w);
+    m_height = static_cast<float>(h);
+    up_selector->Resize(w, h);
+    up_gizmo->Resize(w, h);
+    up_transformController->SetViewportSize(m_width, m_height);
+}
+
+mathpp::vec2f Editor::LocalCursor() const {
+    const ViewportInfo& vp = up_ui->GetViewportInfo();
+    mathpp::vec2f pos;
+    p_input->GetCursorPos(pos);
+    pos.x -= vp.x;
+    pos.y -= vp.y;
+    return pos;
 }
 
 void Editor::ShutDown() {
@@ -158,11 +209,13 @@ mathpp::vec3f Editor::ComputeMedianPos() {
 }
 
 void Editor::UpdateCursorForModalDrag() {
-    bool modalDrag = up_transformController->IsDragging() || p_camera->IsDragging(p_input);
-    if (modalDrag) {
-        p_input->SetCursorMode(2);
-    } else {
-        p_input->SetCursorMode(0);
+    // m_viewportActive is latched while a mouse button is down, so a camera drag that
+    // started in another panel (e.g. the node editor) no longer hides the cursor
+    bool modalDrag = up_transformController->IsDragging() || (m_viewportActive && p_camera->IsDragging(p_input));
+    const int mode = modalDrag ? 2 : 0;
+    if (mode != m_cursorMode) {                              // only talk to GLFW on change
+        p_input->SetCursorMode(mode);
+        m_cursorMode = mode;
     }
 }
 
