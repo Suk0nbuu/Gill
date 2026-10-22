@@ -227,6 +227,10 @@ void HierarchyPanel::Draw() {
 }
 
 void HierarchyPanel::DrawEntityNode(Entity entity) {
+    // ImGui only scopes IDs per tree node while the node is open. Closed siblings (every leaf)
+    // would share the "##nodeContext" popup ID, so one right-click opened the popup for all of
+    // them and Rename/Delete/selection hit the wrong entity.
+    ImGui::PushID(static_cast<int>(entity));
     ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick;
     if (m_ctx.p_selectionManager->GetActiveSelected().has_value() && m_ctx.p_selectionManager->GetActiveSelected().value() == entity) {
         flags |= ImGuiTreeNodeFlags_Selected;
@@ -309,6 +313,7 @@ void HierarchyPanel::DrawEntityNode(Entity entity) {
 
         ImGui::TreePop();
     }
+    ImGui::PopID();
 }
 
 

@@ -122,17 +122,13 @@ void ShaderEditor::DrawContents() {
 
     bool structureChanged = false;
 
-    const bool focused =
-    ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
+    const bool focused = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
 
 
 
-    const bool rightReleased =
-        ImGui::IsMouseReleased(ImGuiMouseButton_Right);
+    const bool rightReleased = ImGui::IsMouseReleased(ImGuiMouseButton_Right);
 
-    const bool shiftA =
-        ImGui::GetIO().KeyShift &&
-        ImGui::IsKeyPressed(ImGuiKey_A);
+    const bool shiftA =ImGui::GetIO().KeyShift && ImGui::IsKeyPressed(ImGuiKey_A);
 
         // Shift+A, like Blender
 

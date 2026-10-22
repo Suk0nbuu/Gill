@@ -1,4 +1,5 @@
 #pragma once
+
 struct Armature {
     std::vector<std::string> boneNames;
     std::vector<int> parentIndices;              // -1 for root
@@ -9,6 +10,6 @@ struct Armature {
 namespace comp {
     struct ArmatureComponent {
         Armature armature;
-        std::vector<mathpp::mat4f> currentLocalPose;
+        std::vector<mathpp::mat4f> currentLocalPose; //for st
     };
 }

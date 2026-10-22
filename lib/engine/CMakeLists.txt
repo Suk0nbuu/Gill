@@ -125,6 +125,7 @@ add_library(engine STATIC
         include/editor/ui/viewportInfo.hpp
         include/editor/ui/areaPanel.hpp
         src/editor/ui/areaPanel.cpp
+        include/core/system/animation/animation.hpp
 
 
 )

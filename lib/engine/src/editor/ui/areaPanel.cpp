@@ -47,6 +47,10 @@ void AreaPanel::DrawHeader() {                          // Blender's editor-type
             if (ImGui::Selectable(TypeName(t), t == m_type)) m_type = t;
         ImGui::EndCombo();
     }
+    if (m_type == EditorType::ShaderEditor) {
+        ImGui::SameLine();
+        ImGui::TextDisabled("Right-click or Shift+A: add node    X / Del: delete");
+    }
     ImGui::EndMenuBar();
 }
 

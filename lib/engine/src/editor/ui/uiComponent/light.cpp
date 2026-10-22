@@ -15,6 +15,8 @@ void RemoveLightComponent(const EngineContext &ctx, Entity e) {
 
 void LightAddMenu(EditorContext &ctx, Entity e) {
     if (ctx.p_scene->TryGetComponent<comp::LightComponent>(e) != nullptr) return;
+    // DrawAddMenu runs every frame the popup is open, so only insert when the item is clicked
+    if (!ImGui::MenuItem("Light")) return;
     comp::LightComponent lComp;
     ctx.p_scene->InsertComponent(e,lComp);
 }
