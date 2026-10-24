@@ -4,6 +4,7 @@
 #include <string>
 #include <mathpp.hpp>
 #include "core/system/armature/armature.hpp"
+#include "core/system/animation/animation.hpp"
 #include "render/mesh/mesh.hpp"
 
 struct GLTFImage {
@@ -39,6 +40,7 @@ struct GLTFModel {
     std::vector<GLTFMaterial> materials;
     std::vector<GLTFImage>    images;
     std::vector<GLTFNode> nodes;
+    std::vector<animation::AnimationClip> animations;
     std::optional<Armature> armature;
     std::string error;                     // non-empty = load failed
     std::string warning;                   // non-fatal, show in the UI

@@ -127,6 +127,7 @@ add_library(engine STATIC
         src/editor/ui/areaPanel.cpp
         include/core/system/animation/animation.hpp
         include/core/timer/timer.hpp
+        src/core/system/animation/animation.cpp
 
 
 )

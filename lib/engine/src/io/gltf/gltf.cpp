@@ -1,10 +1,15 @@
 #include "io/gltf/gltf.hpp"
+
+#include <algorithm>
+
 #include "cgltf.h"
 #include "render/data/vertex.hpp"
 #include <fstream>
 #include <cstring>
 #include <iostream>
 #include <cstdlib>
+#include <unordered_map>
+
 namespace {
     void DecomposeNodeMatrix(const float m[16], GLTFNode& out) {       // column-major, as in glTF
         out.pos = {m[12], m[13], m[14]};
@@ -79,6 +84,110 @@ const char* SniffExtension(const std::vector<unsigned char>& b) {
     if (b.size() >= 3 && b[0] == 0xFF && b[1] == 0xD8 && b[2] == 0xFF)              return ".jpg";
     return nullptr;                                           // webp, ktx2, etc.: unsupported by stb
 }
+
+    std::string ResolveNodeName(const cgltf_node* node, const cgltf_data* data) {
+        if (!node->name || node->name[0] == '\0') {
+        size_t index = node - data->nodes;
+            return "node_" + std::to_string(index);
+        }
+        return node->name;
+    }
+
+    bool ReadSampler(const cgltf_animation_sampler* samp,cgltf_animation_path_type path,std::vector<float>& times,std::vector<float>& values){
+        if (!samp || !samp->input || !samp->output) return false;
+        if (samp->interpolation == cgltf_interpolation_type_cubic_spline) return false;
+
+        const cgltf_accessor* in  = samp->input;
+        const cgltf_accessor* out = samp->output;
+
+        // input: scalar floats, at least one key
+        if (in->type != cgltf_type_scalar || in->component_type != cgltf_component_type_r_32f) return false;
+        if (in->count == 0) return false;
+
+        // linear/step pair keys 1:1
+        if (out->count != in->count) return false;
+
+        // output shape depends on the property being animated
+        switch (path) {
+            case cgltf_animation_path_type_translation:
+            case cgltf_animation_path_type_scale:
+                if (out->type != cgltf_type_vec3 || out->component_type != cgltf_component_type_r_32f) return false;
+                break;
+            case cgltf_animation_path_type_rotation:
+                if (out->type != cgltf_type_vec4) return false;
+                if (out->component_type != cgltf_component_type_r_32f && !out->normalized) return false;
+                break;
+            default:
+                return false;
+        }
+
+
+        times.resize(in->count);
+        values.resize(out->count * cgltf_num_components(out->type));
+
+        if (cgltf_accessor_unpack_floats(in,  times.data(),  times.size())  != times.size())  return false;
+        if (cgltf_accessor_unpack_floats(out, values.data(), values.size()) != values.size()) return false;
+        return true;
+    }
+
+
+    std::optional<animation::AnimationClip> ImportAnimation(const cgltf_animation& anim,const cgltf_data* data ){
+        animation::AnimationClip clip;
+        std::unordered_map<const cgltf_node*,size_t> temp; //index of clip.tracks
+        clip.name = anim.name ? anim.name : "";
+        float start,end;
+
+
+        for (size_t c = 0; c < anim.channels_count; c++) {
+            const cgltf_animation_channel& channel = anim.channels[c];
+            cgltf_node* node = channel.target_node;
+            if (!node) {continue;}
+            if (!temp.contains(node)) {
+                animation::Track track;
+                track.name = ResolveNodeName(node,data);
+                clip.tracks.push_back(track);
+                temp.try_emplace(node,clip.tracks.size()-1);
+            }
+            animation::Track& track = clip.tracks.at(temp.at(node));
+            const cgltf_animation_sampler* samp = channel.sampler;
+            const cgltf_accessor* inputAccessor = samp->input;
+            const cgltf_accessor* outputAccessor = samp->output;
+            std::vector<float> times, values;
+            if (!ReadSampler(samp, channel.target_path, times, values)) return std::nullopt;
+
+            auto mode = (samp->interpolation == cgltf_interpolation_type_step) ? animation::InterpolationMode::Constant : animation::InterpolationMode::Linear;
+
+            switch (channel.target_path) {
+                case cgltf_animation_path_type_translation:
+                    for (size_t k = 0; k < times.size(); ++k) {
+                        float frame = times[k] * clip.fps;
+                        track.position.keyframes.push_back(
+                            { frame, mathpp::vec3f{ values[3*k], values[3*k+1], values[3*k+2] }, mode });
+                    }break;
+
+                case cgltf_animation_path_type_scale:
+                    for (size_t k = 0; k < times.size(); ++k) {
+                        float frame = times[k] * clip.fps;
+                        track.scale.keyframes.push_back(
+                            { frame, mathpp::vec3f{ values[3*k], values[3*k+1], values[3*k+2] }, mode });
+                    }break;
+
+               case cgltf_animation_path_type_rotation:
+                    for (size_t k = 0; k < times.size(); ++k) {
+                        float frame = times[k] * clip.fps;
+                        track.rotation.keyframes.push_back({frame,mathpp::quatf{values[4*k +3],values[4*k],values[4*k+1],values[4*k+2]},mode});
+                    }break;
+            }
+            auto result = std::minmax_element(times.begin(), times.end());
+            float m = *result.first;
+            float e = *result.second;
+            start = std::min(start,m);
+            end = std::max(end,m);
+        }
+        clip.start = start * clip.fps;
+        clip.end = end * clip.fps;
+        return clip;
+    }
 }
 
 GLTFModel LoadGLTF(const std::string& path) {
@@ -273,12 +382,25 @@ GLTFModel LoadGLTF(const std::string& path) {
             }
         }
     }
+
+    if (data->animations_count > 0) {
+        model.animations.reserve(data->animations_count);
+        for (size_t i = 0; i < data->animations_count; ++i) {
+            auto a = ImportAnimation(data->animations[i],data);
+            if (a.has_value()) {
+                model.animations.push_back(std::move(*a));
+            }
+            else {
+                std::cerr << "Animation failed to load" << std::endl;
+            }
+        }
+    }
     model.nodes.reserve(data->nodes_count);
     for (size_t n = 0; n < data->nodes_count; ++n) {
         const cgltf_node& cn = data->nodes[n];
         GLTFNode gn;
         gn.rot.w = 1.0f; gn.rot.x = 0.0f; gn.rot.y = 0.0f; gn.rot.z = 0.0f;
-        gn.name   = cn.name ? cn.name : "";
+        gn.name   = ResolveNodeName(&cn,data);
         gn.parent = cn.parent ? static_cast<int>(cn.parent - data->nodes) : -1;
         gn.skin   = cn.skin   ? static_cast<int>(cn.skin   - data->skins) : -1;
 
