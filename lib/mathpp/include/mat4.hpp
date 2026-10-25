@@ -13,7 +13,7 @@ namespace mathpp {
             vec4<T>(T(0),T(0),T(0),T(1))
         } {}
 
-        T& operator[](int i) {
+        vec4<T>& operator[](int i) {
             switch (i) {
                 case 0: return col[0];
                 case 1: return col[1];
@@ -23,7 +23,7 @@ namespace mathpp {
         }
 
 
-        const T& operator[](int i) const {
+        const vec4<T>& operator[](int i) const {
             switch (i) {
                 case 0: return col[0];
                 case 1: return col[1];
