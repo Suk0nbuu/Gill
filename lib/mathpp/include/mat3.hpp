@@ -20,6 +20,22 @@ namespace mathpp {
 
         mat3(const vec3<T>& c0, const vec3<T>& c1, const vec3<T>& c2)
             : col{ c0, c1, c2 } {}
+
+        T& operator[](int i) {
+            switch (i) {
+                case 0: return col[0];
+                case 1: return col[1];
+                default: return col[2];
+            }
+        }
+
+        const T& operator[](int i) const {
+            switch (i) {
+                case 0: return col[0];
+                case 1: return col[1];
+                default: return col[2];
+            }
+        }
     };
     template <typename T>
     mat3<T> operator*(const mat3<T>& a, const mat3<T>& b) {

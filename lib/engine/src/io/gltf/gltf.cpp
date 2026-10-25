@@ -201,7 +201,7 @@ GLTFModel LoadGLTF(const std::string& path) {
     if (r != cgltf_result_success) { model.error = "cannot load buffers"; cgltf_free(data); return model; }
     if (cgltf_validate(data) != cgltf_result_success) { model.error = "file failed validation"; cgltf_free(data); return model; }
     if (data->skins_count > 1) model.warning = "model has several skins, only the first is used";
-    if (data->skins_count > 0) model.armature = BuildArmatureFromSkin(&data->skins[0]);
+    if (data->skins_count > 0) model.armature = BuildArmatureFromSkin(&data->skins[0],data);
     std::vector<std::vector<int>> meshPrims(data->meshes_count);
     std::cout << "[gltf] file has " << data->materials_count << " materials, "
           << data->textures_count << " textures, "

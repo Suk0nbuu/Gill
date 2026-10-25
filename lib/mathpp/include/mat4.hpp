@@ -13,6 +13,25 @@ namespace mathpp {
             vec4<T>(T(0),T(0),T(0),T(1))
         } {}
 
+        T& operator[](int i) {
+            switch (i) {
+                case 0: return col[0];
+                case 1: return col[1];
+                case 2: return col[2];
+                default: return col[3];
+            }
+        }
+
+
+        const T& operator[](int i) const {
+            switch (i) {
+                case 0: return col[0];
+                case 1: return col[1];
+                case 2: return col[2];
+                default: return col[3];
+            }
+        }
+
     };
     template <typename T>
     mat4<T> operator+(const mat4<T>& a, const mat4<T>& b) {

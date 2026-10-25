@@ -5,7 +5,7 @@
 #include "component/armature.hpp"
 #include "cgltf.h"
 
-Armature BuildArmatureFromSkin(const cgltf_skin* skin);
+Armature BuildArmatureFromSkin(const cgltf_skin* skin,const cgltf_data* data);
 
 
 class ArmatureSystem {

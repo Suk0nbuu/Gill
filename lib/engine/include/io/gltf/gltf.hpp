@@ -36,7 +36,7 @@ struct GLTFNode {
 
 struct GLTFModel {
     std::vector<Mesh> meshes;
-    std::vector<int>          meshMaterial;
+    std::vector<int>  meshMaterial;
     std::vector<GLTFMaterial> materials;
     std::vector<GLTFImage>    images;
     std::vector<GLTFNode> nodes;
