@@ -17,5 +17,6 @@ Entity SpawnLight(EngineContext& ctx, comp::LightType  type) {
     lComp.type = type;
     ctx.p_scene->InsertComponent(entity,lComp);
     ctx.p_scene->InsertComponent(entity,pComp);
+    ctx.p_scene->InsertComponent(entity,mComp);
     return entity;
 }
