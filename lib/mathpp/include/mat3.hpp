@@ -21,7 +21,7 @@ namespace mathpp {
         mat3(const vec3<T>& c0, const vec3<T>& c1, const vec3<T>& c2)
             : col{ c0, c1, c2 } {}
 
-        T& operator[](int i) {
+        vec3<T>& operator[](int i) {
             switch (i) {
                 case 0: return col[0];
                 case 1: return col[1];
@@ -29,7 +29,7 @@ namespace mathpp {
             }
         }
 
-        const T& operator[](int i) const {
+        const  vec3<T>& operator[](int i) const {
             switch (i) {
                 case 0: return col[0];
                 case 1: return col[1];
