@@ -16,6 +16,6 @@ struct Armature {
 namespace comp {
     struct ArmatureComponent {
         Armature armature;
-        std::vector<mathpp::mat4f> currentLocalPose; //for st
+        std::vector<Transform> currentLocalPose; //for sampler
     };
 }
