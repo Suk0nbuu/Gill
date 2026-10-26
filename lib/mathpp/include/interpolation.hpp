@@ -23,8 +23,8 @@ namespace mathpp {
     quat<T> Slerp(T t,  const quat<T>& v0, const quat<T>& v1 ) {
         T dot =  dot(v0, v1);
         if (dot >= T(1.0)) { return Nlerp(t,v0,v1); }
-        T theta = std::acos(clamp(dot),T(0.0),T(1.0));
-        T upper1= std::sin(to_radians((T(1.0)- t))* theta);
+        T theta = std::acos(clamp(dot,T(0.0),T(1.0)));
+        T upper1= std::sin((T(1.0)- t)* theta);
         T lower = std::sin(theta);
         quat<T> result1 = upper1 * v0 /lower;
         T upper2 = std::sin(to_radians(t)* theta);
