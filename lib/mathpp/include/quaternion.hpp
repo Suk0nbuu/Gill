@@ -139,6 +139,11 @@ vec3<T> RotateVector(const quat<T>& q, const vec3<T>& v) {
         return quat<T>(q.w, -q.x, -q.y, -q.z);
     }
 
+    template<typename T>
+    T dot (const quat<T>& a, const quat<T>& b) {
+        return a.w * b.w + a.x * b.x + a.y * b.y + a.z * b.z;
+    }
+
 
     using quatf = quat<float>;
     using quatd = quat<double>;
