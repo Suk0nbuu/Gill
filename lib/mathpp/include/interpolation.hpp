@@ -22,7 +22,7 @@ namespace mathpp {
     template <typename T>
     quat<T> Slerp(T t,  const quat<T>& v0, const quat<T>& v1 ) {
 quat<T> v1c = v1;
-        T dot =  dot(v0, v1);
+        T cosTheta =  dot(v0, v1);
         if (dot >= T(0.9995)) { return Nlerp(t,v0,v1); }
      if(dot < 0)
        { dot = - dot;
@@ -30,7 +30,7 @@ v1c = {-v1.w,-v1.x,-v1.y, -v1.z};
 }
      
 
- std::acos(clamp(dot,T(-1.0),T(1.0)));
+T theta std::acos(clamp(cosTheta,T(-1.0),T(1.0)));
         T upper1= std::sin((T(1.0)- t)* theta);
         T lower = std::sin(theta);
         quat<T> result1 = upper1 * v0 /lower;
