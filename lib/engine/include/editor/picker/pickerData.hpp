@@ -3,9 +3,9 @@
 namespace gill_editor {
 
     enum class Type : uint32_t {
-        Gizmo = 1,
-        Entity = 2,
-        Bone = 3,
+        Gizmo = 1, //001
+        Entity = 2, // 010
+        Bone = 3, //011
         //we read the top 3 bits and compare it to this
     };
 
@@ -23,14 +23,11 @@ namespace gill_editor {
        return t;
    }
 
-    struct Result {
+    struct Pixel {
        Type type;
        uint32_t payload;
    };
-    struct Entry {
-        std::function<void()> f_callable;
-        uint32_t type;
-    };
+
 
     inline uint32_t Encode(const Type& type, uint32_t index) {
         uint32_t id;
@@ -60,5 +57,12 @@ namespace gill_editor {
         return id;
     }
 
-    inline uint32_t Decode()
+    inline Pixel Decode(uint32_t pixel) {
+         Pixel p;
+        uint32_t kind = pixel>>29;
+        uint32_t payload = pixel & (1u << 29) - 1;
+        p.type = static_cast<Type>(kind);
+        p.payload = payload;
+        return p;
+    }
 }

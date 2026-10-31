@@ -29,7 +29,7 @@ void gill_editor::Picker::Resize(unsigned int width, unsigned int height) {
     glFramebufferRenderbuffer(GL_FRAMEBUFFER,GL_DEPTH_ATTACHMENT,GL_RENDERBUFFER,m_pickDepthRenderbuffer);
 }
 
-void gill_editor::Picker::Run(const std::vector<Entry> &entry) {
+void gill_editor::Picker::Run(const std::vector<std::function<void()>> &entry) {
     FboScope scope;
     glBindFramebuffer(GL_FRAMEBUFFER, m_pickFBO);
     glViewport(0, 0, m_pickWidth, m_pickHeight);
@@ -37,7 +37,7 @@ void gill_editor::Picker::Run(const std::vector<Entry> &entry) {
     glClearBufferuiv(GL_COLOR, 0,&m_clearValue);
     glClear(GL_DEPTH_BUFFER_BIT);
     for (auto& e : entry) {
-        e.f_callable(e.type);
+        e();
     }
 }
 
@@ -50,6 +50,7 @@ uint32_t gill_editor::Picker::ReadAt(int x, int y) {
 
     GLuint pickedID = 0;
     glReadPixels(x, flippedY, 1, 1, GL_RED_INTEGER, GL_UNSIGNED_INT, &pickedID);
+    return pickedID;
 }
 
 void gill_editor::Picker::Reset() {

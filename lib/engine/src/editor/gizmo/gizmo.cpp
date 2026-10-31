@@ -11,7 +11,7 @@
 #include "editor/core/fboScope.hpp"
 #include <algorithm>
 #include <iostream>
-#include "editor/picker/encode.hpp"
+#include "editor/picker/pickerData.hpp"
 #include "editor/selector/selectionManager.hpp"
 
 void Gizmo::Init(unsigned int width,unsigned int height,TransformData* gizmoData,TransformSystem* transformSystem,SelectionManager* selectionManager) {

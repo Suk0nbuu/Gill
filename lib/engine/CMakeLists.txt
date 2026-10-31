@@ -133,7 +133,7 @@ add_library(engine STATIC
         src/editor/armature/armature.cpp
         include/editor/picker/picker.hpp
         src/editor/picker/picker.cpp
-        include/editor/picker/encode.hpp
+        include/editor/picker/pickerData.hpp
 
 
 )

@@ -5,7 +5,7 @@
 #include <functional>
 #include <cstdint>
 #include <iostream>
-#include "encode.hpp"
+#include "pickerData.hpp"
 namespace gill_editor {
 
 
@@ -16,7 +16,7 @@ class Picker {
 public:
     void Init(unsigned int width, unsigned int height);
     void Resize(unsigned int width, unsigned int height);
-    void Run(const std::vector<Entry>& entry);
+    void Run(const std::vector<std::function<void()>>& entry);
     unsigned int  ReadAt(int x, int y);
 
 

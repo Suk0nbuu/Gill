@@ -7,7 +7,7 @@
 #include "editor/core/fboScope.hpp"
 #include <algorithm>
 
-#include "editor/picker/encode.hpp"
+#include "editor/picker/pickerData.hpp"
 
 
 void Selector::Init(gill_editor::Picker* picker) {
@@ -38,8 +38,10 @@ void Selector::RenderEntityID(const Scene *scene,Entity entity, const comp::Mesh
 
 
 std::optional<Entity> Selector::ReadEntityAt(int mx, int my) {
-    Entity entity;
+
    uint32_t id = p_picker->ReadAt(mx,my);
     if (id == CLEAR_VALUE) {return std::nullopt;} //max value
-    
+   auto pixel = gill_editor::Decode(id);
+    if (pixel.type != gill_editor::Type::Entity) {return std::nullopt;}
+    return pixel.payload;
 }

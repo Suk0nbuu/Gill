@@ -181,23 +181,34 @@ void Editor::ShutDown() {
 Editor::Editor() = default;
 Editor::~Editor() = default;
 
-void Editor::TrySelect(int mx, int my) {
+void Editor::TrySelect(int mx, int my) //it write first then Read
+{
+
+    std::vector<std::function<void()>> entries;
     if (m_mode == EditorMode::ObjectMode) {
-        gill_editor::Entry entry;
-        entry.f_callable =
-        std::optional<Entity> picked = up_selector->ReadEntityAt(mx, my);
-        if (!picked.has_value()) {
-            up_selectionManager->ClearSelection();
-            return;
-        }
+        entries.emplace_back([this](){up_selector->RenderScene(p_scene,p_transformSystem,p_meshSystem);});
+        entries.emplace_back([this](){up_gizmo->RenderIDs(ComputeMedianPos(),p_camera->GetPosition());});
+    }
+    else if (m_mode == EditorMode::PoseMode) {
+        entries.emplace_back([this](){up_armaturePicke});
+        entries.emplace_back([this](){up_gizmo->RenderIDs(ComputeMedianPos(),p_camera->GetPosition());});
+    }
+    up_picker->Run(entries);
 
-
-
-        if (p_input->IsShiftHeld()) {
-            up_selectionManager->ToggleSelection(picked.value());
-        } else {
-            up_selectionManager->SetSelected(picked.value());
-        }
+    uint32_t id = up_picker->ReadAt(mx,my);
+    if (id == CLEAR_VALUE && m_mode == EditorMode::ObjectMode) {up_selectionManager->ClearSelection();}
+    auto res = gill_editor::Decode(id);
+    switch (res.type) {
+        case gill_editor::Type::Entity:
+            if (p_input->IsShiftHeld()){up_selectionManager->ToggleSelection(res.payload);}
+            else {up_selectionManager->SetSelected(res.payload);}
+            break;
+        case gill_editor::Type::Bone:
+            break;
+        case gill_editor::Type::Gizmo:
+            break;
+        default:
+            std::cerr<<"Type is not a recognized type" <<std::endl;
     }
 }
 
