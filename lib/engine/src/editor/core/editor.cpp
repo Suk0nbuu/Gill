@@ -22,6 +22,8 @@
 #include "editor/ui/viewportInfo.hpp"
 
 
+
+
 void Editor::Init(float Width, float Height,Window* window,Scene* scene,Input* input,const mathpp::mat4f& projection, Camera* camera,TransformSystem* transformSystem,Hierarchy* hierarchy,MeshSystem* meshSystem, MaterialSystem* materialSystem,Renderer* renderer, ArmatureSystem* armatureSystem,ProjectPaths* projectPath) {
     p_window = window;
     p_scene = scene;
@@ -33,6 +35,7 @@ void Editor::Init(float Width, float Height,Window* window,Scene* scene,Input* i
     up_selector = std::make_unique<Selector>();
     up_gridRenderer = std::make_unique<GridRenderer>();
     up_transformController = std::make_unique<TransformController>();
+    up_picker = std::make_unique<gill_editor::Picker>();
     p_hierarchy = hierarchy;
     p_transformSystem = transformSystem;
     p_meshSystem = meshSystem;
@@ -40,6 +43,7 @@ void Editor::Init(float Width, float Height,Window* window,Scene* scene,Input* i
     p_input = input;
     p_projectPaths = projectPath;
     p_armatureSystem = armatureSystem;
+    up_picker->Init(m_width,m_height);
     up_selectionManager = std::make_unique<SelectionManager>();
     up_editorInputMap = std::make_unique<EditorInputMap>(p_input);
     up_outline = std::make_unique<Outline>();
@@ -47,10 +51,10 @@ void Editor::Init(float Width, float Height,Window* window,Scene* scene,Input* i
     up_gizmo = std::make_unique<Gizmo>();
     up_gizmoAdapter = std::make_unique<GizmoAdapter>();
     up_gridRenderer->Init(100);
-    up_gizmo->Init(m_width,m_height,&m_gizmoData,p_transformSystem);
+    up_gizmo->Init(m_width,m_height,&m_gizmoData,p_transformSystem,up_selectionManager.get());
     up_ui->Init(window,p_scene,p_transformSystem,p_hierarchy,&m_gizmoData,p_renderer,p_meshSystem,p_materialSystem,up_editorInputMap.get(),up_selectionManager.get(),p_input,p_projectPaths);
     up_ui->SetFileEvents(&saveRequested, &closeRequested);
-    up_selector->Init(m_width,m_height);
+    up_selector->Init();
     up_outline->Init(meshSystem,transformSystem,up_selectionManager.get());
     up_transformController->Init(m_width,m_height,&m_gizmoData,p_transformSystem,up_selectionManager.get(),hierarchy);
     up_gizmoAdapter->Init(up_gizmo.get(), up_transformController.get(), &m_gizmoData, up_selectionManager.get());
@@ -128,8 +132,8 @@ void Editor::RenderOverlays() {
         Entity active = up_selectionManager->GetActiveSelected().value();
         mathpp::vec3f medianPos = ComputeMedianPos();
         if (m_gizmoData.visible) {
-            up_gizmo->Render(p_scene,medianPos,p_camera->GetPosition(),active);
-            up_gizmo->RenderIDs(medianPos,p_camera->GetPosition(),active);
+            up_gizmo->Render(p_scene,medianPos,p_camera->GetPosition());
+
             up_gizmo->DrawOriginMarker(medianPos);
         }
         const mathpp::vec2f pos = LocalCursor();
@@ -155,8 +159,6 @@ void Editor::SyncViewportSize(int w, int h) {
     m_vpHeight = h;
     m_width = static_cast<float>(w);
     m_height = static_cast<float>(h);
-    up_selector->Resize(w, h);
-    up_gizmo->Resize(w, h);
     up_transformController->SetViewportSize(m_width, m_height);
 }
 
@@ -180,19 +182,25 @@ Editor::Editor() = default;
 Editor::~Editor() = default;
 
 void Editor::TrySelect(int mx, int my) {
-    std::optional<Entity> picked = up_selector->ReadEntityAt(mx, my);
-    if (!picked.has_value()) {
-        up_selectionManager->ClearSelection();
-        return;
-    }
+    if (m_mode == EditorMode::ObjectMode) {
+        gill_editor::Entry entry;
+        entry.f_callable =
+        std::optional<Entity> picked = up_selector->ReadEntityAt(mx, my);
+        if (!picked.has_value()) {
+            up_selectionManager->ClearSelection();
+            return;
+        }
 
 
-    if (p_input->IsShiftHeld()) {
-        up_selectionManager->ToggleSelection(picked.value());
-    } else {
-        up_selectionManager->SetSelected(picked.value());
+
+        if (p_input->IsShiftHeld()) {
+            up_selectionManager->ToggleSelection(picked.value());
+        } else {
+            up_selectionManager->SetSelected(picked.value());
+        }
     }
 }
+
 
 
 

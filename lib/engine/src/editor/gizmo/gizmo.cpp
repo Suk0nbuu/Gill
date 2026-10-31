@@ -11,9 +11,10 @@
 #include "editor/core/fboScope.hpp"
 #include <algorithm>
 #include <iostream>
+#include "editor/picker/encode.hpp"
+#include "editor/selector/selectionManager.hpp"
 
-
-void Gizmo::Init(unsigned int width,unsigned int height,TransformData* gizmoData,TransformSystem* transformSystem) {
+void Gizmo::Init(unsigned int width,unsigned int height,TransformData* gizmoData,TransformSystem* transformSystem,SelectionManager* selectionManager) {
     glEnable(GL_PROGRAM_POINT_SIZE);
     glGenVertexArrays(1, &m_originVAO);
     glBindVertexArray(m_originVAO);
@@ -27,36 +28,18 @@ void Gizmo::Init(unsigned int width,unsigned int height,TransformData* gizmoData
 
     p_transformSystem = transformSystem;
     p_gizmoData = gizmoData;
+    p_selectionManager = selectionManager;
     up_gizmoShader = std::make_unique<Shader>("asset/shader/gizmo/gizmoShader/gizmoVert.glsl", "asset/shader/gizmo/gizmoShader/gizmoFrag.glsl");
     up_gizmoShaderID = std::make_unique<Shader>("asset/shader/gizmo/gizmoShaderID/gizmoVertID.glsl","asset/shader/gizmo/gizmoShaderID/gizmoFragID.glsl");
     up_translateMesh = std::make_unique<Mesh>(LoadOBJ("asset/mesh/core/gizmo/GizmoTranslate.obj"));
     up_rotateMesh = std::make_unique<Mesh>(LoadOBJ("asset/mesh/core/gizmo/GizmoRotate.obj"));
     up_scaleMesh = std::make_unique<Mesh>(LoadOBJ("asset/mesh/core/gizmo/GizmoScale.obj"));
     up_planeMesh = std::make_unique<Mesh>(LoadOBJ("asset/mesh/core/gizmo/GizmoPlane.obj"));
-    glGenFramebuffers(1,&m_pickFBO);
-    glGenTextures(1,&m_pickTexture);
-    glGenRenderbuffers(1,&m_pickDepthRenderBuffer);
-    Resize(width, height);
 }
 
-void Gizmo::Resize(unsigned int width, unsigned int height) {
-    width = std::max(width, 1u);
-    height = std::max(height, 1u);
-    if (width == m_pickWidth && height == m_pickHeight) return;
-    m_pickWidth = width;
-    m_pickHeight = height;
 
-    FboScope scope;
-    glBindFramebuffer(GL_FRAMEBUFFER,m_pickFBO);
-    glBindTexture(GL_TEXTURE_2D,m_pickTexture);
-    glTexImage2D(GL_TEXTURE_2D,0,GL_R32I,m_pickWidth,m_pickHeight,0,GL_RED_INTEGER,GL_INT,nullptr);
-    glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D,m_pickTexture,0);
-    glBindRenderbuffer(GL_RENDERBUFFER,m_pickDepthRenderBuffer);
-    glRenderbufferStorage(GL_RENDERBUFFER,GL_DEPTH_COMPONENT,m_pickWidth,m_pickHeight);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER,GL_DEPTH_ATTACHMENT,GL_RENDERBUFFER,m_pickDepthRenderBuffer);
-}
 
-void Gizmo::Render(Scene* scene,const mathpp::vec3f& gizmoPosition, const mathpp::vec3f& cameraPos,Entity entity) {
+void Gizmo::Render(Scene* scene,const mathpp::vec3f& gizmoPosition, const mathpp::vec3f& cameraPos) {
     up_gizmoShader->Use();
 
 
@@ -67,7 +50,8 @@ void Gizmo::Render(Scene* scene,const mathpp::vec3f& gizmoPosition, const mathpp
     mathpp::mat4f rotY;
     mathpp::mat4f rotX;
     mathpp::mat4f rotZ;
-    ComputeAxisRotations(entity, rotX, rotY, rotZ);
+    auto entity = p_selectionManager->GetActiveSelected();
+    ComputeAxisRotations(entity.value(), rotX, rotY, rotZ);
 
     mathpp::vec3f xColor = (em_highlightedAxis == TransformAxis::X) ? mathpp::vec3f(1.0f,1.0f,0.0f) : mathpp::vec3f(0.8f,0.0f,0.0f);
     DrawAxis(gizmoPosition, rotX, xColor, scale);
@@ -106,13 +90,8 @@ void Gizmo::DrawAxis(const mathpp::vec3f &gizmoPosition, const mathpp::mat4f &ax
     drawMesh->Draw();
 }
 
-void Gizmo::RenderIDs(const mathpp::vec3f &gizmoPosition, const mathpp::vec3f &cameraPos,Entity entity) {
+void Gizmo::RenderIDs(const mathpp::vec3f &gizmoPosition, const mathpp::vec3f &cameraPos) {
     FboScope scope;                                  // restores the caller's FBO and viewport
-    GLint clearValue = 0;
-    glBindFramebuffer(GL_FRAMEBUFFER, m_pickFBO);
-    glViewport(0, 0, m_pickWidth, m_pickHeight);
-    glClearBufferiv(GL_COLOR, 0, &clearValue);
-    glClear(GL_DEPTH_BUFFER_BIT);
     up_gizmoShaderID->Use();
 
 
@@ -125,11 +104,21 @@ void Gizmo::RenderIDs(const mathpp::vec3f &gizmoPosition, const mathpp::vec3f &c
     mathpp::mat4f rotX;
     mathpp::mat4f rotZ;
 
-    ComputeAxisRotations(entity, rotX, rotY, rotZ);
+    auto entity = p_selectionManager->GetActiveSelected();
+    ComputeAxisRotations(entity.value(), rotX, rotY, rotZ);
+    gill_editor::Type type = gill_editor::Type::Gizmo;
+    TransformAxis axis = TransformAxis::X;
 
-    DrawAxisID(gizmoPosition, rotX, scale,static_cast<int>(TransformAxis::X));
-    DrawAxisID(gizmoPosition, rotY,  scale,static_cast<int>(TransformAxis::Y));
-    DrawAxisID(gizmoPosition, rotZ,  scale,static_cast<int>(TransformAxis::Z));
+
+    uint32_t indices[3];
+
+    for (size_t i = 0; i < (sizeof(indices)/ 3) - 1; i++) {
+        indices[i] = gill_editor::Encode(type,static_cast<uint32_t>(axis + i));
+    }
+
+    DrawAxisID(gizmoPosition, rotX, scale,static_cast<int>(indices[0]));
+    DrawAxisID(gizmoPosition, rotY,  scale,static_cast<int>(indices[1]));
+    DrawAxisID(gizmoPosition, rotZ,  scale,static_cast<int>(indices[2]));
 
     glEnable(GL_DEPTH_TEST);
 }
@@ -157,21 +146,10 @@ void Gizmo::DrawAxisID(const mathpp::vec3f &gizmoPosition, const mathpp::mat4f &
 
 }
 
-TransformAxis Gizmo::ReadAxisAt(int x, int y) const {
-    // x, y are viewport-local pixels, origin top-left
-    if (x < 0 || y < 0 || x >= static_cast<int>(m_pickWidth) || y >= static_cast<int>(m_pickHeight)) return TransformAxis::None;
-
-    FboScope scope;
-    glBindFramebuffer(GL_FRAMEBUFFER, m_pickFBO);
-    int flippedY = static_cast<int>(m_pickHeight) - 1 - y;  // glReadPixels origin is bottom-left
-
-    GLint pickedID = 0;
-    glReadPixels(x, flippedY, 1, 1, GL_RED_INTEGER, GL_INT, &pickedID);
-    return static_cast<TransformAxis>(pickedID);
-}
 
 
 
+/*
 void Gizmo::UpdateHighlight(int x, int y, TransformAxis dragAxis, bool isDragging)  {
     if (isDragging) {
         em_highlightedAxis = dragAxis;
@@ -179,7 +157,7 @@ void Gizmo::UpdateHighlight(int x, int y, TransformAxis dragAxis, bool isDraggin
     else {
         em_highlightedAxis = ReadAxisAt(x,y);
     }
-}
+}*/
 Gizmo::~Gizmo() = default;
 
 void Gizmo::ComputeAxisRotations(Entity entity, mathpp::mat4f& outRotX, mathpp::mat4f& outRotY, mathpp::mat4f& outRotZ) const {

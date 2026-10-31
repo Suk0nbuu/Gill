@@ -85,7 +85,7 @@ Armature BuildArmatureFromSkin(const cgltf_skin* skin,const cgltf_data* data) {
 
 std::vector<mathpp::mat4f> ArmatureSystem::ComputeWorldTransforms(const comp::ArmatureComponent& armComp) const {
     const Armature& arm = armComp.armature;
-    std::vector<mathpp::mat4f> local = ComputeTransform(armComp.currentLocalPose);
+    std::vector<mathpp::mat4f> local = ComposeLocalMatrices(armComp.currentLocalPose);
     std::vector<mathpp::mat4f> world(arm.boneNames.size());
     for (size_t i = 0; i < arm.boneNames.size(); ++i) {
         int parent = arm.parentIndices[i];
@@ -108,15 +108,16 @@ void ArmatureSystem::ResetToBindPose(comp::ArmatureComponent& armComp) const {
 }
 
 
-std::vector<mathpp::mat4f> ArmatureSystem::ComputeTransform(const std::vector<Transform> &transform) const {
+std::vector<mathpp::mat4f> ArmatureSystem::ComposeLocalMatrices(const std::vector<Transform> &transform) const {
     std::vector<mathpp::mat4f> localPose(transform.size());
     int count = -1;
-    for (auto& t : transform) {
+    for (size_t i = 0; i < transform.size(); ++i) {
+        const auto& t = transform[i];
         mathpp::mat4f mat = mathpp::mat4f();
         mat = mathpp::translate(mat,t.position);
-        mat =  mat * mathpp::QuatToMat4(t.rotation);
+        mat = mat * mathpp::QuatToMat4(t.rotation);
         mat = mathpp::scale(mat,t.scale);
-        localPose[count++] = mat;
+        localPose[i] = mat;
     }
     return localPose;
 }

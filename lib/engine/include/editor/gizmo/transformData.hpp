@@ -1,13 +1,28 @@
 #pragma once
 #include "mathpp.hpp"
+#include <cstdint>
 
 
-enum class TransformAxis : int {
-    None = 0,
+enum class TransformAxis : uint32_t {
+    None = 0, //only used for Shortcut based transform
     X = 1,
     Y = 2,
     Z = 3
 };
+
+inline TransformAxis& operator++(TransformAxis& t) {
+    auto i = static_cast<uint32_t>(t);
+    i++;
+    t = static_cast<TransformAxis>(i);
+    return t;
+}
+
+inline TransformAxis& operator+(TransformAxis& t, uint32_t i) {
+    auto j = static_cast<uint32_t>(t);
+    j = j + i ;
+    t = static_cast<TransformAxis>(j);
+    return t;
+}
 
 enum class TransformMode : int {
     Translate = 0,

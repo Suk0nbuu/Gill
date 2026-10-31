@@ -4,6 +4,10 @@
 #include <vector>
 #include <algorithm>
 #include <optional>
+#include <unordered_map>
+#include <iostream>
+
+#include "component/armature.hpp"
 
 
 namespace animation {
@@ -62,26 +66,46 @@ namespace animation {
         const Keyframe<T>& a = channel.keyframes[index-1];
         const Keyframe<T>& b = channel.keyframes[index];
         if (a.mode == InterpolationMode::Constant) {return a.value;}
-        else {
-            if constexpr (std::is_same_v<T, mathpp::vec3f>) {
-                float divisor = b.frame - a.frame;
-                if (divisor < mathpp::epsilon<float>) { return a.value;}
-                float t = (frame-a.frame) / divisor;
-                return mathpp::Lerp(t, a.value, b.value);
+        else if (a.mode == InterpolationMode::Linear) {
+            float divisor = b.frame - a.frame;
+            if (divisor < mathpp::epsilon<float>) { return a.value;}
+            float t = (frame-a.frame) / divisor;
+          return mathpp::Blend(t,a.value,b.value);
+        }
+    }
+   inline std::vector<int> MakeList(const AnimationClip& clip,const Armature& armature) {
+        std::vector<int> bindList(clip.tracks.size(),-1);
+        int missCount = 0;
+        std::unordered_map<std::string,int> nameToBone;
+        nameToBone.reserve(armature.boneNames.size());
+        for (size_t i = 0; i < armature.boneNames.size(); ++i) {
+            nameToBone.try_emplace(armature.boneNames[i],i);
+        }
+        for (size_t i = 0; i < clip.tracks.size(); ++i) {
+            const animation::Track& track = clip.tracks[i];
+            auto it = nameToBone.find(track.name);
+            if (it != nameToBone.end()) {
+                bindList[i] = it->second;
             }
-            else if constexpr (std::is_same_v<T, mathpp::quatf>) {
-                float divisor = b.frame - a.frame;
-                float t = (frame-a.frame) / divisor;
-                return mathpp::Slerp(t,a.value, b.value);
+            else {
+                bindList[i] = -1;
+                missCount++;
             }
         }
+        if (missCount == bindList.size()) {
+            std::cerr<<"all bone not compatible or Clip is Empty "<<std::endl;
+        }
+        else if (missCount >= 1) {
+            std::cerr<<"not all bone is being animated"<<std::endl;
+        }
+        return bindList;
     }
 }
 
 class AnimationSystem {
 public:
 
-    void SampleClip(animation::AnimationClip& clip, float frame);
+    void SampleClip(const animation::AnimationClip& clip, float frame,const Armature& armature, const std::vector<int>& bindList,std::vector<Transform>& outTransform);
 private:
 
 

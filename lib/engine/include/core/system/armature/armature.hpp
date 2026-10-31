@@ -16,5 +16,5 @@ public:
     std::vector<mathpp::mat4f> ComputeSkinningPalette(const comp::ArmatureComponent& armComp) const;
     void ResetToBindPose(comp::ArmatureComponent& armComp) const;
 private:
-    std::vector<mathpp::mat4f> ComputeTransform(const std::vector<Transform>& transform) const;
+    std::vector<mathpp::mat4f> ComposeLocalMatrices(const std::vector<Transform>& transform) const;
 };

@@ -76,6 +76,30 @@ vec3<T> RotateVector(const quat<T>& q, const vec3<T>& v) {
         q.z = lhs.w * rhs.z + lhs.x * rhs.y - lhs.y * rhs.x + lhs.z * rhs.w;
         return q;
     }
+        template<typename T>
+        quat<T> operator*(const quat<T>& lhs, T s) {
+            return quat<T>(lhs.w* s,lhs.x * s,lhs.y * s, lhs.z* s);
+        }
+        template<typename T>
+        quat<T> operator*(T s, const quat<T>& rhs) {
+            return quat<T>(rhs.w* s,rhs.x * s,rhs.y * s, rhs.z* s);
+        }
+    template<typename T>
+    quat<T> operator/(const quat<T>& lhs, T s) {
+        return quat<T>(lhs.w/s,lhs.x/s,lhs.y/s,lhs.z/s);
+    }
+    template<typename T>
+    quat<T> operator/(T s, const quat<T>& rhs) {
+        return quat<T>(rhs.w/s,rhs.x/s,rhs.y/s,rhs.z/s);
+    }
+    template<typename T>
+    quat<T> operator+(const quat<T>& lhs, const quat<T>& rhs) {
+        return quat<T>(lhs.w + rhs.w,lhs.x + rhs.x, lhs.y + rhs.y,lhs.z + rhs.z );
+    }
+    template<typename T>
+    quat<T> operator-(const quat<T>& lhs, const quat<T>& rhs) {
+        return quat<T>(lhs.w - rhs.w,lhs.x - rhs.x, lhs.y - rhs.y,lhs.z - rhs.z );
+    }
     template<typename T>
     mat4<T> QuatToMat4(const quat<T>& q) {
         float xx = q.x*q.x, yy = q.y*q.y, zz = q.z*q.z;

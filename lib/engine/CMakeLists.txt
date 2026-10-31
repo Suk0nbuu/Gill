@@ -128,6 +128,12 @@ add_library(engine STATIC
         include/core/system/animation/animation.hpp
         include/core/timer/timer.hpp
         src/core/system/animation/animation.cpp
+        include/editor/core/editorMode.hpp
+        include/editor/armature/armature.hpp
+        src/editor/armature/armature.cpp
+        include/editor/picker/picker.hpp
+        src/editor/picker/picker.cpp
+        include/editor/picker/encode.hpp
 
 
 )
