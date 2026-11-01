@@ -20,11 +20,10 @@ class Selector {
     Selector() = default;
     void Init();
     void RenderScene(const Scene* scene,TransformSystem* transformSystem,MeshSystem* meshSystem);
-    std::optional<Entity> ReadEntityAt(int mx, int my);
+
 
 private:
     void RenderEntityID(const Scene* scene,Entity entity, const comp::MeshComponent& meshComp,TransformSystem* transformSystem,MeshSystem* meshSystem);
     unsigned int m_width = 0, m_height = 0;
     std::unique_ptr<Shader> up_selectShader;
-    gill_editor::Picker* p_picker;
 };

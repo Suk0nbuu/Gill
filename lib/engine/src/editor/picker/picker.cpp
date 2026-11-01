@@ -10,6 +10,7 @@ void gill_editor::Picker::Init(unsigned int width, unsigned int height) {
     glGenFramebuffers(1,&m_pickFBO);
     glGenTextures(1,&m_pickTexture);
     glGenRenderbuffers(1,&m_pickDepthRenderbuffer);
+    Resize(m_pickWidth,m_pickHeight);
 }
 
 void gill_editor::Picker::Resize(unsigned int width, unsigned int height) {
@@ -48,7 +49,7 @@ uint32_t gill_editor::Picker::ReadAt(int x, int y) {
     glBindFramebuffer(GL_FRAMEBUFFER, m_pickFBO);
     int flippedY = static_cast<int>(m_pickHeight) - 1 - y;  // glReadPixels origin is bottom-left
 
-    GLuint pickedID = 0;
+    GLuint pickedID = 3735928559;
     glReadPixels(x, flippedY, 1, 1, GL_RED_INTEGER, GL_UNSIGNED_INT, &pickedID);
     return pickedID;
 }

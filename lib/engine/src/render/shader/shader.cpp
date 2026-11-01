@@ -12,28 +12,28 @@
 
 
 
-void Shader::setBool(const std::string &name, bool value) const {
+void Shader::SetBool(const std::string &name, bool value) const {
     glUniform1i(glGetUniformLocation(m_ID, name.c_str()),static_cast<int> (value));
 }
-void Shader::setInt(const std::string &name, int value) const {
+void Shader::SetInt(const std::string &name, int value) const {
     glUniform1i(glGetUniformLocation(m_ID, name.c_str()),value);
 }
 
-void Shader::setFloat(const std::string &name, float value) const {
+void Shader::SetFloat(const std::string &name, float value) const {
     glUniform1f(glGetUniformLocation(m_ID, name.c_str()),value);
 }
 
-void Shader::setMat4f(const std::string &name, const mathpp::mat4f& matrix ) const {
+void Shader::SetMat4f(const std::string &name, const mathpp::mat4f& matrix ) const {
     const float* p = &matrix.col[0][0];
     glUniformMatrix4fv(glGetUniformLocation(m_ID, name.c_str()),1,GL_FALSE,p);
 }
 
-void Shader::setVec2f(const std::string &name, const mathpp::vec2f& vector) const {
+void Shader::SetVec2f(const std::string &name, const mathpp::vec2f& vector) const {
     const float* p = &vector.x;
     glUniform2fv(glGetUniformLocation(m_ID, name.c_str()),1,p);
 }
 
-void Shader::setVec3f(const std::string &name, const mathpp::vec3f &vector) const {
+void Shader::SetVec3f(const std::string &name, const mathpp::vec3f &vector) const {
     const float*p = &vector.x;
     glUniform3fv(glGetUniformLocation(m_ID, name.c_str()),1,p);
 }
@@ -63,7 +63,7 @@ Shader& Shader::operator=(Shader&& other) noexcept {
     return *this;
 }
 
-void Shader::setMat3f(const std::string &name, const mathpp::mat3f &matrix) const {
+void Shader::SetMat3f(const std::string &name, const mathpp::mat3f &matrix) const {
     const float* p = &matrix.col[0][0];
     glUniformMatrix3fv(glGetUniformLocation(m_ID, name.c_str()),1,GL_FALSE,p);
 }
@@ -170,4 +170,8 @@ std::string Shader::LoadShaderSourceWithIncludes(const std::string& path) {
         return "";
     }
     return ExpandIncludes(file, std::filesystem::path(path).parent_path(), path);
+}
+
+void Shader::SetUInt(const std::string &name, unsigned int value) const {
+    glUniform1ui(glGetUniformLocation(m_ID, name.c_str()), value);
 }

@@ -74,11 +74,11 @@ void Renderer::DrawEntity(const Scene* scene, Entity entity,
         Shader* shader = m_shaderCache.Get("asset/shader/solidShader/solidVert.glsl", "asset/shader/solidShader/solidFrag.glsl", features);
         shader->Use();
         mathpp::mat4f model = p_transformSystem->GetWorldTransform(entity);
-        shader->setMat4f("model", model);
+        shader->SetMat4f("model", model);
         mathpp::mat3f normalMat = mathpp::normal_matrix(view * model);
-        shader->setMat3f("normalMatrix", normalMat);
+        shader->SetMat3f("normalMatrix", normalMat);
         matCapTexture->Bind(0);
-        shader->setInt("matCap", 0);
+        shader->SetInt("matCap", 0);
 
         if (features & Feature_Skinning) UploadSkinningPalette(scene, entity);
     } else if (em_viewportMode == ViewportMode::Rendered) {
@@ -95,7 +95,7 @@ void Renderer::DrawEntity(const Scene* scene, Entity entity,
         }
         if (!shader) { solidShader->Use(); shader = solidShader.get(); }   // missing or broken shader: same fallback as before
 
-        shader->setMat4f("model", p_transformSystem->GetWorldTransform(entity));
+        shader->SetMat4f("model", p_transformSystem->GetWorldTransform(entity));
         if (features & Feature_Skinning) UploadSkinningPalette(scene, entity);
     }
     else {
@@ -104,8 +104,8 @@ void Renderer::DrawEntity(const Scene* scene, Entity entity,
         const Texture* tex = mat ? FindMaterialTexture(*mat) : nullptr;
         if (!tex) tex = fallBackTexture.get();
         tex->Bind(0);
-        shader->setInt("meshTexture", 0);
-        shader->setMat4f("model", p_transformSystem->GetWorldTransform(entity));
+        shader->SetInt("meshTexture", 0);
+        shader->SetMat4f("model", p_transformSystem->GetWorldTransform(entity));
 
         if (features & Feature_Skinning) UploadSkinningPalette(scene, entity);
     }
@@ -149,12 +149,12 @@ void Renderer::UploadMaterial(const Material& m, const Shader& s) const {
     for (const auto& p : m.props) {
         std::visit([&](const auto& v) {
             using T = std::decay_t<decltype(v)>;
-            if constexpr (std::is_same_v<T, float>)              s.setFloat(p.name, v);
-            else if constexpr (std::is_same_v<T, mathpp::vec3f>) s.setVec3f(p.name, v);
+            if constexpr (std::is_same_v<T, float>)              s.SetFloat(p.name, v);
+            else if constexpr (std::is_same_v<T, mathpp::vec3f>) s.SetVec3f(p.name, v);
             else if constexpr (std::is_same_v<T, TextureRef>) {
                 const Texture* tex = p_materialSystem->GetTexture(v.handle);
-                s.setInt("has_" + p.name, tex ? 1 : 0);
-            if (tex) { tex->Bind(slot); s.setInt(p.name, slot++); }}
+                s.SetInt("has_" + p.name, tex ? 1 : 0);
+            if (tex) { tex->Bind(slot); s.SetInt(p.name, slot++); }}
         }, p.value);
     }
 }
@@ -187,9 +187,9 @@ void Renderer::UploadGraphMaterial(const Material& m, const CodegenResult& prog,
         if (!n || u.socketIndex >= static_cast<int>(n->inputValues.size())) continue;
         const SocketValue& v = n->inputValues[u.socketIndex];
         if (u.type == SocketType::Float) {
-            if (const float* f = std::get_if<float>(&v)) s.setFloat(u.name, *f);
+            if (const float* f = std::get_if<float>(&v)) s.SetFloat(u.name, *f);
         } else {
-            if (const mathpp::vec3f* c = std::get_if<mathpp::vec3f>(&v)) s.setVec3f(u.name, *c);
+            if (const mathpp::vec3f* c = std::get_if<mathpp::vec3f>(&v)) s.SetVec3f(u.name, *c);
         }
     }
 
@@ -197,7 +197,7 @@ void Renderer::UploadGraphMaterial(const Material& m, const CodegenResult& prog,
     for (const auto& t : prog.textures) {
         const GraphNode* n = g.Find(t.nodeId);
         const Texture* tex = n ? p_materialSystem->GetTexture(n->image.handle) : nullptr;
-        s.setInt("has_" + t.name, tex ? 1 : 0);
-        if (tex) { tex->Bind(slot); s.setInt(t.name, slot++); }
+        s.SetInt("has_" + t.name, tex ? 1 : 0);
+        if (tex) { tex->Bind(slot); s.SetInt(t.name, slot++); }
     }
 }

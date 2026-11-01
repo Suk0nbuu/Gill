@@ -1,8 +1,8 @@
 #version 330
 
-out int fragColor;
+out uint fragColor;
 
-uniform int ObjectID;
+uniform uint ObjectID;
 void main() {
     fragColor = ObjectID;
 }

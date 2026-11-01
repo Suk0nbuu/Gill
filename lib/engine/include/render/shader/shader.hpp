@@ -25,13 +25,14 @@ public:
 
 
     void Use() const;
-    void setBool(const std::string& name, bool value) const;
-    void setInt(const std::string& name, int value) const;
-    void setFloat(const std::string& name, float value) const;
-    void setMat4f(const std::string& name, const mathpp::mat4f& matrix) const;
-    void setVec2f(const std::string& name, const mathpp::vec2f& vector) const;
-    void setVec3f(const std::string& name, const mathpp::vec3f& vector) const;
-    void setMat3f(const std::string& name, const mathpp::mat3f& matrix) const;
+    void SetBool(const std::string& name, bool value) const;
+    void SetUInt(const std::string& name, unsigned int value) const;
+    void SetInt(const std::string& name, int value) const;
+    void SetFloat(const std::string& name, float value) const;
+    void SetMat4f(const std::string& name, const mathpp::mat4f& matrix) const;
+    void SetVec2f(const std::string& name, const mathpp::vec2f& vector) const;
+    void SetVec3f(const std::string& name, const mathpp::vec3f& vector) const;
+    void SetMat3f(const std::string& name, const mathpp::mat3f& matrix) const;
 
 private:
     static std::string LoadShaderSourceWithIncludes(const std::string& path);

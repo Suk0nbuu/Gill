@@ -10,8 +10,7 @@
 #include "editor/picker/pickerData.hpp"
 
 
-void Selector::Init(gill_editor::Picker* picker) {
-    p_picker = picker;
+void Selector::Init() {
     up_selectShader = std::make_unique<Shader>("asset/shader/selectShader/selectVert.glsl","asset/shader/selectShader/selectFrag.glsl");
 }
 
@@ -29,19 +28,11 @@ void Selector::RenderScene(const Scene* scene,TransformSystem* transformSystem,M
 void Selector::RenderEntityID(const Scene *scene,Entity entity, const comp::MeshComponent &meshComp,TransformSystem* transformSystem,MeshSystem* meshSystem) {
     auto mesh = meshSystem->GetMesh(meshComp.meshID);
     auto id = gill_editor::Encode(gill_editor::Type::Entity,entity);
-    up_selectShader->setMat4f("model",transformSystem->GetWorldTransform(entity) );
-    up_selectShader->setInt("ObjectID", static_cast<int>(id));
+    up_selectShader->SetMat4f("model",transformSystem->GetWorldTransform(entity) );
+    up_selectShader->SetUInt("ObjectID", static_cast<int>(id));
     mesh->Draw();
 
 
 }
 
 
-std::optional<Entity> Selector::ReadEntityAt(int mx, int my) {
-
-   uint32_t id = p_picker->ReadAt(mx,my);
-    if (id == CLEAR_VALUE) {return std::nullopt;} //max value
-   auto pixel = gill_editor::Decode(id);
-    if (pixel.type != gill_editor::Type::Entity) {return std::nullopt;}
-    return pixel.payload;
-}

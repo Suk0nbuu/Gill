@@ -32,7 +32,7 @@ void Outline::DrawEntity(const Scene* scene,Entity entity,const comp::MeshCompon
     auto worldTransform = p_transformSystem->GetWorldTransform(entity);
     if (!mesh) return;
 
-    up_outlineShader->setMat4f("model",worldTransform);
+    up_outlineShader->SetMat4f("model",worldTransform);
     mesh->Draw();
 }
 

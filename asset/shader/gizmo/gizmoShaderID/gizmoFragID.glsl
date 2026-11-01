@@ -1,8 +1,8 @@
 #version 330
 
-out int fragColor;
+out uint fragColor;
 
-uniform int GizmoAxis;
+uniform uint GizmoAxis;
 void main() {
     fragColor = GizmoAxis;
 }

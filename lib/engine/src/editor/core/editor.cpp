@@ -180,20 +180,23 @@ Editor::Editor() = default;
 Editor::~Editor() = default;
 
 void Editor::TrySelect(int mx, int my) //it wrote first then Read
-{
+{bool hasValue = up_selectionManager->GetActiveSelected().has_value();
 
     std::vector<std::function<void()>> entries;
     if (m_mode == EditorMode::ObjectMode) {
         entries.emplace_back([this](){up_selector->RenderScene(p_scene,p_transformSystem,p_meshSystem);});
-        entries.emplace_back([this](){up_gizmo->RenderIDs(ComputeMedianPos(),p_camera->GetPosition());});
+        if (hasValue)
+        {entries.emplace_back([this](){up_gizmo->RenderIDs(ComputeMedianPos(),p_camera->GetPosition());});}
     }
     else if (m_mode == EditorMode::PoseMode) {
         //entries.emplace_back([this](){up_armaturePicke});
-        entries.emplace_back([this](){up_gizmo->RenderIDs(ComputeMedianPos(),p_camera->GetPosition());});
+        if (hasValue)
+        {entries.emplace_back([this](){up_gizmo->RenderIDs(ComputeMedianPos(),p_camera->GetPosition());});}
     }
     up_picker->Run(entries);
 
     uint32_t id = up_picker->ReadAt(mx,my);
+
     if (id == CLEAR_VALUE && m_mode == EditorMode::ObjectMode) {up_selectionManager->ClearSelection();}
     auto res = gill_editor::Decode(id);
     TransformAxis axis = static_cast<TransformAxis>(res.payload);
@@ -209,7 +212,9 @@ void Editor::TrySelect(int mx, int my) //it wrote first then Read
             up_gizmoAdapter->OnMouseDown(mx, my, p_camera->GetViewMatrix(), m_proj,axis);
             break;
         default:
-            std::cerr<<"Type is not a recognized type" <<std::endl;
+            std::cerr <<  id <<std::endl;
+            std::cerr << static_cast<uint32_t>(res.type) <<std::endl;
+            std::cerr << res.payload << std::endl;
             break;
     }
 }

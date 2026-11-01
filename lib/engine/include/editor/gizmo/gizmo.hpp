@@ -2,6 +2,7 @@
 #include "mathpp.hpp"
 #include "transformData.hpp"
 #include <memory>
+#include "editor/picker/pickerData.hpp"
 
 class Scene;
 class Mesh;
@@ -20,6 +21,7 @@ public:
     void RenderIDs(const mathpp::vec3f& gizmoPosition, const mathpp::vec3f& cameraPos);
    // void UpdateHighlight(int x, int y,TransformAxis dragAxis,bool isDragging = false);
     void DrawOriginMarker(const mathpp::vec3f& gizmoPosition);
+    TransformAxis ReadAxisFrom(gill_editor::Pixel pixel);
 
 
     ~Gizmo();
@@ -34,6 +36,7 @@ private:
     std::unique_ptr<Mesh> up_planeMesh;
     std::unique_ptr<Shader> up_gizmoShader;
     std::unique_ptr<Shader> up_gizmoShaderID;
+
     unsigned int m_originVBO,m_originVAO; //TODO : Make a handler for this
     float m_AxisHeight = 1.0f;
     Picker* p_picker;

@@ -11,7 +11,6 @@
 #include "editor/core/fboScope.hpp"
 #include <algorithm>
 #include <iostream>
-#include "editor/picker/pickerData.hpp"
 #include "editor/selector/selectionManager.hpp"
 
 void Gizmo::Init(unsigned int width,unsigned int height,TransformData* gizmoData,TransformSystem* transformSystem,SelectionManager* selectionManager) {
@@ -68,7 +67,7 @@ void Gizmo::Render(Scene* scene,const mathpp::vec3f& gizmoPosition, const mathpp
 
 
 void Gizmo::DrawAxis(const mathpp::vec3f &gizmoPosition, const mathpp::mat4f &axisRotation, const mathpp::vec3f &color, float scale) {
-    up_gizmoShader->setVec3f("axisColor", color);
+    up_gizmoShader->SetVec3f("axisColor", color);
     mathpp::mat4f identity;
     Mesh* drawMesh = nullptr;
     if (p_gizmoData->mode == TransformMode::Translate){drawMesh = up_translateMesh.get();}
@@ -86,7 +85,7 @@ void Gizmo::DrawAxis(const mathpp::vec3f &gizmoPosition, const mathpp::mat4f &ax
         meshModel = meshModel = mathpp::scale(meshModel, {scale, scale, scale});
     }
 
-    up_gizmoShader->setMat4f("model", meshModel);
+    up_gizmoShader->SetMat4f("model", meshModel);
     drawMesh->Draw();
 }
 
@@ -124,7 +123,7 @@ void Gizmo::RenderIDs(const mathpp::vec3f &gizmoPosition, const mathpp::vec3f &c
 }
 
 void Gizmo::DrawAxisID(const mathpp::vec3f &gizmoPosition, const mathpp::mat4f &axisRotation, float scale, unsigned int ID) {
-    up_gizmoShaderID->setInt("GizmoAxis",ID);
+    up_gizmoShaderID->SetUInt("GizmoAxis",ID);
     mathpp::mat4f identity;
     Mesh* drawMesh = nullptr;
     if (p_gizmoData->mode == TransformMode::Translate){drawMesh = up_translateMesh.get();}
@@ -141,7 +140,7 @@ void Gizmo::DrawAxisID(const mathpp::vec3f &gizmoPosition, const mathpp::mat4f &
     else{
         axisModel = axisModel = mathpp::scale(axisModel, {scale, scale, scale});
     }
-    up_gizmoShaderID->setMat4f("model", axisModel);
+    up_gizmoShaderID->SetMat4f("model", axisModel);
     drawMesh->Draw();
 
 }
@@ -179,10 +178,10 @@ void Gizmo::ComputeAxisRotations(Entity entity, mathpp::mat4f& outRotX, mathpp::
 
 void Gizmo::DrawOriginMarker(const mathpp::vec3f& gizmoPosition) {
     up_gizmoShader->Use();
-    up_gizmoShader->setVec3f("axisColor", mathpp::vec3f(1.0f, 1.0f, 1.0f));
+    up_gizmoShader->SetVec3f("axisColor", mathpp::vec3f(1.0f, 1.0f, 1.0f));
 
     mathpp::mat4f model = mathpp::translate(mathpp::mat4f(), gizmoPosition);
-    up_gizmoShader->setMat4f("model", model);
+    up_gizmoShader->SetMat4f("model", model);
 
     bool depthWasEnabled = glIsEnabled(GL_DEPTH_TEST);
     glDisable(GL_DEPTH_TEST);
@@ -194,6 +193,6 @@ void Gizmo::DrawOriginMarker(const mathpp::vec3f& gizmoPosition) {
     if (depthWasEnabled) glEnable(GL_DEPTH_TEST);  // restore whatever state it found
 }
 
-TransformAxis Gizmo::ReadAxisFrom(gill_editor::Pixel) {
-
+TransformAxis Gizmo::ReadAxisFrom(gill_editor::Pixel pixel) {
+    return static_cast<TransformAxis>(pixel.payload);
 }

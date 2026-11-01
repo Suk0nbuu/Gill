@@ -15,9 +15,9 @@ void GridRenderer::Init(float extent) {
 void GridRenderer::Render(const mathpp::vec3f& camPos) {
     mathpp::mat4f model = mathpp::translate(mathpp::mat4f{}, {camPos.x, 0.0f, camPos.z});
     up_gridShader->Use();
-    up_gridShader->setMat4f("model",model);
-    up_gridShader->setFloat("cellSize", m_cellSize);
-    up_gridShader->setFloat("extent", m_ext);
+    up_gridShader->SetMat4f("model",model);
+    up_gridShader->SetFloat("cellSize", m_cellSize);
+    up_gridShader->SetFloat("extent", m_ext);
 
 
 
