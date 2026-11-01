@@ -64,10 +64,8 @@ void Editor::Init(float Width, float Height,Window* window,Scene* scene,Input* i
         const ViewportInfo& vp = up_ui->GetViewportInfo();
         const int lx = mx - static_cast<int>(vp.x);         // viewport-local pixels
         const int ly = my - static_cast<int>(vp.y);
-        bool consumed = up_gizmoAdapter->OnMouseDown(lx, ly, p_camera->GetViewMatrix(), m_proj);
-        if (!consumed) {
-            TrySelect(lx, ly);
-        }
+        TrySelect(lx, ly);
+
     });
     auto handle2 = p_input->mouseUp.Subscribe([this](int mx, int my) {
         up_gizmoAdapter->OnMouseUp();
@@ -181,7 +179,7 @@ void Editor::ShutDown() {
 Editor::Editor() = default;
 Editor::~Editor() = default;
 
-void Editor::TrySelect(int mx, int my) //it write first then Read
+void Editor::TrySelect(int mx, int my) //it wrote first then Read
 {
 
     std::vector<std::function<void()>> entries;
@@ -190,7 +188,7 @@ void Editor::TrySelect(int mx, int my) //it write first then Read
         entries.emplace_back([this](){up_gizmo->RenderIDs(ComputeMedianPos(),p_camera->GetPosition());});
     }
     else if (m_mode == EditorMode::PoseMode) {
-        entries.emplace_back([this](){up_armaturePicke});
+        //entries.emplace_back([this](){up_armaturePicke});
         entries.emplace_back([this](){up_gizmo->RenderIDs(ComputeMedianPos(),p_camera->GetPosition());});
     }
     up_picker->Run(entries);
@@ -198,6 +196,7 @@ void Editor::TrySelect(int mx, int my) //it write first then Read
     uint32_t id = up_picker->ReadAt(mx,my);
     if (id == CLEAR_VALUE && m_mode == EditorMode::ObjectMode) {up_selectionManager->ClearSelection();}
     auto res = gill_editor::Decode(id);
+    TransformAxis axis = static_cast<TransformAxis>(res.payload);
     switch (res.type) {
         case gill_editor::Type::Entity:
             if (p_input->IsShiftHeld()){up_selectionManager->ToggleSelection(res.payload);}
@@ -206,9 +205,12 @@ void Editor::TrySelect(int mx, int my) //it write first then Read
         case gill_editor::Type::Bone:
             break;
         case gill_editor::Type::Gizmo:
+
+            up_gizmoAdapter->OnMouseDown(mx, my, p_camera->GetViewMatrix(), m_proj,axis);
             break;
         default:
             std::cerr<<"Type is not a recognized type" <<std::endl;
+            break;
     }
 }
 

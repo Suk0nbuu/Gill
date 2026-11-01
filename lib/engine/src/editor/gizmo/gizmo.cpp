@@ -194,3 +194,6 @@ void Gizmo::DrawOriginMarker(const mathpp::vec3f& gizmoPosition) {
     if (depthWasEnabled) glEnable(GL_DEPTH_TEST);  // restore whatever state it found
 }
 
+TransformAxis Gizmo::ReadAxisFrom(gill_editor::Pixel) {
+
+}

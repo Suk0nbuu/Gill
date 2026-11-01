@@ -14,18 +14,18 @@ void GizmoAdapter::Init(Gizmo* gizmo, TransformController* controller, Transform
 void GizmoAdapter::OnMouseMove(int mx, int my) {
     if (!p_gizmoData->visible) return;
     if (!p_selectionManager->GetActiveSelected().has_value()) return;
-    p_gizmo->UpdateHighlight(mx, my, p_controller->GetActiveAxis(), p_controller->IsDragging());
+   // p_gizmo->UpdateHighlight(mx, my, p_controller->GetActiveAxis(), p_controller->IsDragging());
 }
 
-bool GizmoAdapter::OnMouseDown(int mx, int my, const mathpp::mat4f& view, const mathpp::mat4f& proj) {
+bool GizmoAdapter::OnMouseDown(int mx, int my, const mathpp::mat4f& view, const mathpp::mat4f& proj, TransformAxis axis) {
     if (!p_gizmoData->visible) return false;
     if (p_controller->IsDragging()) return false;
     if (!p_selectionManager->GetActiveSelected().has_value()) return false;
 
-    TransformAxis pickedAxis = p_gizmo->ReadAxisAt(mx, my);
-    if (pickedAxis == TransformAxis::None) return false;
 
-    p_gizmoData->axis = pickedAxis;
+    if (axis == TransformAxis::None) return false;
+
+    p_gizmoData->axis = axis;
     p_controller->Begin(view, proj, static_cast<float>(mx), static_cast<float>(my));
     return true;
 }

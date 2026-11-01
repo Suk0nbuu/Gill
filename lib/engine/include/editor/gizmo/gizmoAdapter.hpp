@@ -12,7 +12,7 @@ public:
     void Init(Gizmo* gizmo, TransformController* controller, TransformData* gizmoData, SelectionManager* selectionManager);
 
     void OnMouseMove(int mx, int my); // call every frame regardless of button state — drives hover highlight
-    bool OnMouseDown(int mx, int my, const mathpp::mat4f& view, const mathpp::mat4f& proj);
+    bool OnMouseDown(int mx, int my, const mathpp::mat4f& view, const mathpp::mat4f& proj,TransformAxis axis);
     void OnMouseUp();
     ~GizmoAdapter();
 
