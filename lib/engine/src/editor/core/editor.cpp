@@ -138,7 +138,6 @@ void Editor::RenderOverlays() {
         up_gizmoAdapter->OnMouseMove(static_cast<int>(pos.x), static_cast<int>(pos.y));
     }
 
-    up_selector->RenderScene(p_scene,p_transformSystem,p_meshSystem);
     up_outline->Draw(p_scene);
 }
 
@@ -158,6 +157,7 @@ void Editor::SyncViewportSize(int w, int h) {
     m_width = static_cast<float>(w);
     m_height = static_cast<float>(h);
     up_transformController->SetViewportSize(m_width, m_height);
+    up_picker->Resize(m_width, m_height);
 }
 
 mathpp::vec2f Editor::LocalCursor() const {
@@ -180,17 +180,17 @@ Editor::Editor() = default;
 Editor::~Editor() = default;
 
 void Editor::TrySelect(int mx, int my) //it wrote first then Read
-{bool hasValue = up_selectionManager->GetActiveSelected().has_value();
-
+{
+    bool hasValue = up_selectionManager->GetActiveSelected().has_value();
     std::vector<std::function<void()>> entries;
     if (m_mode == EditorMode::ObjectMode) {
         entries.emplace_back([this](){up_selector->RenderScene(p_scene,p_transformSystem,p_meshSystem);});
-        if (hasValue)
+        if (m_gizmoData.visible &&  hasValue)
         {entries.emplace_back([this](){up_gizmo->RenderIDs(ComputeMedianPos(),p_camera->GetPosition());});}
     }
     else if (m_mode == EditorMode::PoseMode) {
         //entries.emplace_back([this](){up_armaturePicke});
-        if (hasValue)
+        if (m_gizmoData.visible && hasValue)
         {entries.emplace_back([this](){up_gizmo->RenderIDs(ComputeMedianPos(),p_camera->GetPosition());});}
     }
     up_picker->Run(entries);

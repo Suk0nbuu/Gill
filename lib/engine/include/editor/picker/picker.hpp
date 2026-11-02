@@ -27,6 +27,6 @@ private:
     unsigned int m_pickFBO;
     unsigned int m_pickDepthRenderbuffer;
     unsigned int m_pickTexture;
-    unsigned int m_clearValue =  4294967295; // 0xFFFFFFFF , the largest maximum value;
+    unsigned int m_clearValue =  CLEAR_VALUE; // 0xFFFFFFFF , the largest maximum value;
 };
 }
